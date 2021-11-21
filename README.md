@@ -12,13 +12,12 @@ Newest version : [1.0.0.0](https://github.com/evilhawk00/PrintheadMaintainer/rel
 
 ## Screenshots
 <img width="550" src="https://github.com/evilhawk00/PrintheadMaintainer/blob/main/OtherResources/Screenshots/HomeScreen.jpg?raw=true">
-<br/>
+
+<img width="275" src="https://github.com/evilhawk00/PrintheadMaintainer/blob/main/OtherResources/Screenshots/HomeScreen_Warning.jpg?raw=true"><img width="275" src="https://github.com/evilhawk00/PrintheadMaintainer/blob/main/OtherResources/Screenshots/HomeScreen_Error.jpg?raw=true">
+
 <img width="550" src="https://github.com/evilhawk00/PrintheadMaintainer/blob/main/OtherResources/Screenshots/PrintNowScreen.jpg?raw=true">
-<br/>
 <img width="550" src="https://github.com/evilhawk00/PrintheadMaintainer/blob/main/OtherResources/Screenshots/SettingsScreen.jpg?raw=true">
-<br/>
 <img width="550" src="https://github.com/evilhawk00/PrintheadMaintainer/blob/main/OtherResources/Screenshots/LogsScreen.jpg?raw=true">
-<br/>
 
 ## Features
 + **Prints a user defined .Bmp image with the printer regularly.**
@@ -38,20 +37,20 @@ Newest version : [1.0.0.0](https://github.com/evilhawk00/PrintheadMaintainer/rel
 		  <img width="100" src="https://github.com/evilhawk00/PrintheadMaintainer/blob/main/OtherResources/Screenshots/Tray_Warning.jpg?raw=true">
 		+ Not functional<br/>
 		  <img width="100" src="https://github.com/evilhawk00/PrintheadMaintainer/blob/main/OtherResources/Screenshots/Tray_Error.jpg?raw=true">
+		  
 + **The software is seperated in two parts. The System Service part runs under LocalSystem account and the UI part runs under user account**
 	+ The UI can be closed by right clicking the tray icon and select "exit". Please note closing the UI will not affect the scheduled printing function of this software because the background service is still running in the background. Closing the UI only disables the ability of showing a printing failure notification. The UI is just an bridge to communicate with the background service and display the current status to the user. With this kind of implementation, the software can do the printing job even if the PC is still at the user login screen.
-<br/>
 
 ## Image for printing
 + **Currently only .bmp image is supported.**
 	+ Users can make their own printing image with photoshop.
 	+ The provided image will be stretched to fit the paper size. If you do not want the image being stretched, try cropping or create the image with the exact dimention ratios of your printer
 	
-| Size      | Length  |  Width  |
-| --------  | -----:  | :----:  |
-|  A3       |  420mm  |  297mm  |
-|  A4       |  297mm  |  210mm  |
-|  B4       |  364mm  |  257mm  |
+		| Size      | Length  |  Width  |
+		| --------  | -----:  | :----:  |
+		|  A3       |  420mm  |  297mm  |
+		|  A4       |  297mm  |  210mm  |
+		|  B4       |  364mm  |  257mm  |
 
 <br/>
 For example, this is the use of custom image :
