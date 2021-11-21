@@ -1,0 +1,95 @@
+﻿<!--
+
+Copyright (C) 2021  YAN-LIN, CHEN
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+-->
+
+<Window x:Class="PrintheadMaintainerUI.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:Converters="clr-namespace:PrintheadMaintainerUI.ValueConverters"
+    xmlns:local="clr-namespace:PrintheadMaintainerUI"
+    xmlns:views="clr-namespace:PrintheadMaintainerUI.Views"
+    xmlns:viewmodels="clr-namespace:PrintheadMaintainerUI.ViewModels"
+        
+    Title="Printhead Maintainer" 
+    Height="550" 
+    Width="805" 
+    ResizeMode="NoResize" 
+    WindowStyle="None" 
+    AllowsTransparency="True" 
+    Background="Transparent">
+
+    <Window.Resources>
+        <Converters:ServiceStateToWindowIconConverter x:Key="ServiceStateToWindowIconConverter"/>
+    </Window.Resources>
+    <Window.Icon>
+        <Binding Path="ServiceStateForConverter" Converter="{StaticResource ServiceStateToWindowIconConverter}"/>
+    </Window.Icon>
+    <Window.DataContext>
+        <viewmodels:ViewModelMainWindow />
+    </Window.DataContext>
+    
+    <Border Margin="10">
+        <Border.Effect>
+            <DropShadowEffect Color="Black"
+                              Direction="270"
+                              BlurRadius="10"
+                              ShadowDepth="3" />
+        </Border.Effect>
+        <Grid Background="White"
+              MouseDown="MainWindow_MouseDown" 
+              Name="MainWindowGrid" 
+              Focusable="True">
+            
+            <Grid.RowDefinitions>
+                <RowDefinition Height="41" />
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="41" />
+            </Grid.RowDefinitions>
+
+
+            <DockPanel Grid.Row="0" VerticalAlignment="Stretch" Name="titleBar" Background="white">
+                <TextBlock Padding="0"
+                           Margin="12,0,0,0"
+                            VerticalAlignment="Center"
+                            Text="Printhead Maintainer"
+                            Foreground="Black"
+                            
+                            FontSize="20" />
+                <Button Margin="0,0,1,0" Width="48" Height="Auto" HorizontalAlignment="Right" DockPanel.Dock="Right" FontSize="20" Style="{StaticResource ExitStyle}" Content="x" Click="VoidMinimizeWindowToTray"/>
+                <Button Margin="0,0,1,0"  Width="48" Height="Auto" HorizontalAlignment="Right" DockPanel.Dock="Right" FontSize="20" Style="{StaticResource MinimizeStyle}" Content="-" Click="VoidMinimizeWindow"/>
+
+            </DockPanel>
+
+
+
+
+
+            <ContentControl Grid.Row="1" Content="{Binding CurrentPageViewModel}"/>
+
+
+
+            <Grid Grid.Row="2" VerticalAlignment="Stretch" Background="#cecece">
+                <TextBlock TextAlignment="Left" Text="{Binding StrFooter}" VerticalAlignment="Center" Margin="10,0,0,0"/>
+            </Grid>
+            
+
+        </Grid>
+    </Border>
+    
+
+</Window>

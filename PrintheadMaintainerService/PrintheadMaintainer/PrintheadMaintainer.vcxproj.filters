@@ -1,0 +1,139 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="來源檔案">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="標頭檔">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="資源檔">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="PrintheadMaintainer.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
+    <ClCompile Include="SoftwareSettings\SoftwareSettings.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\DateTimeUtils.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\PrinterUtils.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\RegistryUtils.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
+    <ClCompile Include="NamedPipeServer\IPCServer.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\WstringUtils.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
+    <ClCompile Include="NamedPipeServer\IPCProcessingJob.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
+    <ClCompile Include="PrintingEntryPoint\PrintingEntryPoint.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
+    <ClCompile Include="PrintingStatusReporter\PrintingStatusReporter.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\GetFolderPathUtils.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\LoggingUtils.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\FileSizeUtils.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\WriteFileUtils.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\EncodingUtils.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
+    <ClCompile Include="Logging\Logging.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\LargeIntegerUtils.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\RandomUtils.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="resource.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="SoftwareSettings\SoftwareSettings.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\RegistryUtils.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\PrinterUtils.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\DateTimeUtils.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="NamedPipeServer\IPCServer.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\WstringUtils.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="NamedPipeServer\IPCProcessingJob.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="PrintingEntryPoint\PrintingEntryPoint.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="PrintingStatusReporter\PrintingStatusReporter.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\GetFolderPathUtils.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\LoggingUtils.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\FileSizeUtils.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\WriteFileUtils.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\EncodingUtils.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Logging\Logging.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\LargeIntegerUtils.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\RandomUtils.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="PrintheadMaintainer.rc">
+      <Filter>資源檔</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Assets\Icon_Grey.ico">
+      <Filter>資源檔</Filter>
+    </Image>
+  </ItemGroup>
+</Project>

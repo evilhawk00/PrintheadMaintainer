@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+	<Product Id="{9F0BB602-AFD5-4242-A073-38B724C60E12}" Name="Printhead Maintainer" Language="1033" Version="1.0.0.0" Manufacturer="evilhawk00" UpgradeCode="{836CF211-F067-43F8-A021-6BB3E007F9AF}">
+		<Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" InstallPrivileges="elevated" Platform="x86"/>
+
+		<MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+		<MediaTemplate EmbedCab="yes"/>
+    
+    <Feature Id='Complete' Title='Printhead Maintainer' Description='The complete package.' Display='expand' Level='1' ConfigurableDirectory='INSTALLFOLDER'>
+      <Feature Id='MainProgram' Title='Program' Description='The main executable.' Level='1'>
+        <ComponentGroupRef Id='MainProgramCompGroup' />
+      </Feature>
+      
+    </Feature>
+
+    <WixVariable Id="WixUIBannerBmp" Value="Assets\WixUIBannerBmp.bmp" />
+    <WixVariable Id="WixUIDialogBmp" Value="Assets\WixUIDialogBmp.bmp" />
+    <WixVariable Id="WixUILicenseRtf" Value="Assets\LICENSE.rtf" />
+
+    <Property Id="ARPHELPLINK" Value="https://github.com/evilhawk00/PrintheadMaintainer/issues" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/evilhawk00/PrintheadMaintainer" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/evilhawk00/PrintheadMaintainer" />
+
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER"/>
+    <Icon Id="Icon_Blue.ico" SourceFile="Assets\Icon_Blue.ico"/>
+    <Property Id="ARPPRODUCTICON" Value="Icon_Blue.ico" />
+
+    <UI>
+      <UIRef Id="WixUI_InstallDir" />
+      <Publish Dialog="ExitDialog"
+            Control="Finish"
+            Event="DoAction"
+            Value="LaunchApplication">Not Installed</Publish>
+    </UI>
+    
+    <Property Id="WixShellExecTarget" Value="[#PrintheadMaintainer.exe]" />
+    <CustomAction Id="LaunchApplication"
+        BinaryKey="WixCA"
+        DllEntry="WixShellExec"
+        Impersonate="yes" />
+    
+
+
+  </Product>
+
+
+	<Fragment>
+		<Directory Id="TARGETDIR" Name="SourceDir">
+			<Directory Id="ProgramFilesFolder">
+        <Directory Id="INSTALLFOLDER" Name="Printhead Maintainer">
+          <Directory Id="InstallFolderResources" Name="Resources"/>
+        </Directory>
+			</Directory>
+      <Directory Id="ProgramMenuFolder" Name="Programs">
+        <Directory Id="ProgramMenuSubfolder" Name="Printhead Maintainer">
+        </Directory>
+      </Directory>
+      <Directory Id="DesktopFolder" Name="Desktop" />
+		</Directory>
+    
+  </Fragment>
+
+	<Fragment>
+		<ComponentGroup Id="MainProgramCompGroup">
+      <Component Id="PrintheadMaintainSvc.exe" Guid="{ACE6A76B-97F5-4DDA-B656-35957122DA00}" Directory="INSTALLFOLDER">
+        <File Id="PrintheadMaintainSvc.exe" Source="InstallationFilesSourceDir\PrintheadMaintainSvc.exe" KeyPath="yes" Checksum="yes"/>
+        <ServiceInstall Id="ServiceInstaller" Type="ownProcess" Vital="yes"
+						Name="PrintheadMaintenanceSvc" DisplayName="PrintHead Maintainer Service"
+						Description="A background service designed for printers with continuous ink systems. Aims to prevent the ink from drying out by printing automatically." 
+            Start="auto" Account="LocalSystem" ErrorControl="normal" Interactive="no" />
+        <ServiceControl Id="StartService"  Stop="both" Start="install" Remove="uninstall"
+						Name="PrintheadMaintenanceSvc" Wait="yes" />
+      </Component>
+      <Component Id="PrintheadMaintainer.exe" Guid="{BF869006-9B96-42AB-B92D-0B85770357C9}" Directory="INSTALLFOLDER">
+        <File Id="PrintheadMaintainer.exe" Source="InstallationFilesSourceDir\PrintheadMaintainer.exe" KeyPath="yes"/>
+        <RegistryValue Id="TrayAutoStartRegistry" Root="HKLM" Action="write"
+                       Key="Software\Microsoft\Windows\CurrentVersion\Run"
+                       Name="Printhead Maintainer"
+                       Value="[#PrintheadMaintainer.exe] /silent"
+                       Type="string" />
+      </Component>
+      <Component Id="System.ValueTuple.dll" Guid="{7C43AA6B-F124-46BE-9889-F6DF6BD3CEDE}" Directory="INSTALLFOLDER">
+        <File Id="System.ValueTuple.dll" Source="InstallationFilesSourceDir\System.ValueTuple.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="Microsoft.Toolkit.Uwp.Notifications.dll" Guid="{5AC1F148-B1D3-4A08-9BA6-B50AC9DEEEC3}" Directory="INSTALLFOLDER">
+        <File Id="Microsoft.Toolkit.Uwp.Notifications.dll" Source="InstallationFilesSourceDir\Microsoft.Toolkit.Uwp.Notifications.dll" KeyPath="yes"/>
+      </Component>
+      <Component Id="LICENSE.txt" Guid="{2F53B61C-129B-4455-BBA2-069DB456D946}" Directory="INSTALLFOLDER">
+        <File Id="LICENSE.txt" Source="InstallationFilesSourceDir\LICENSE.txt" KeyPath="yes"/>
+      </Component>
+      <Component Id="GithubRepository.url" Guid="{A2A1BC30-25CF-49E7-80BA-474B6B6854CB}" Directory="INSTALLFOLDER">
+        <File Id="GithubRepository.url" Source="InstallationFilesSourceDir\Github Repository.url" KeyPath="yes"/>
+      </Component>
+      <Component Id="DefaultPrint.bmp" Guid="{6F877372-522E-4C9D-A5AD-9436FF526F34}" Directory="InstallFolderResources">
+        <File Id="DefaultPrint.bmp" Source="InstallationFilesSourceDir\Resources\DefaultPrint.bmp" KeyPath="yes"/>
+      </Component>
+      <Component Id="RegistryDefaultValue" Guid="{2395B3A1-FEA1-4871-B95F-16E38053BA1B}" NeverOverwrite="yes" Directory="INSTALLFOLDER">
+        <RegistryKey Root="HKLM" Key="Software\[Manufacturer]\[ProductName]" ForceCreateOnInstall="yes" ForceDeleteOnUninstall="yes">
+          <RegistryValue Type="string" Name="BmpFilePath" Value="[#DefaultPrint.bmp]" />
+        </RegistryKey>
+      </Component>
+      <Component Id="ProgramMenuDir" Guid="{F79E52A9-C95B-446D-BB48-FA6426DFE957}" Directory="ProgramMenuSubfolder">
+        <Shortcut Id="PrintheadMaintainerShortcut" Name="Printhead Maintainer" Description="Printhead Maintainer is designed for printers with continuous ink systems. Aims to prevent the ink from drying out by printing automatically."
+                            Target="[INSTALLFOLDER]PrintheadMaintainer.exe" WorkingDirectory="INSTALLFOLDER"/>
+        <RemoveFolder Id='ProgramMenuSubfolder' On='uninstall' />
+        <RegistryValue Root='HKCU' Key='Software\[Manufacturer]\[ProductName]' Type='string' Value='' KeyPath='yes' />
+      </Component>
+    </ComponentGroup>
+	</Fragment>
+
+
+  
+</Wix>

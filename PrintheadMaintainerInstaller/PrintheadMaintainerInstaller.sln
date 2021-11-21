@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31911.196
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{930C7802-8A8C-48F9-8165-68863BCCD9DD}") = "PrintheadMaintainerInstaller", "PrintheadMaintainerInstaller.wixproj", "{6FACEDDA-0BCF-4440-90CA-53B0584F6448}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6FACEDDA-0BCF-4440-90CA-53B0584F6448}.Debug|x86.ActiveCfg = Debug|x86
+		{6FACEDDA-0BCF-4440-90CA-53B0584F6448}.Debug|x86.Build.0 = Debug|x86
+		{6FACEDDA-0BCF-4440-90CA-53B0584F6448}.Release|x86.ActiveCfg = Release|x86
+		{6FACEDDA-0BCF-4440-90CA-53B0584F6448}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B13178FE-32A4-437D-8783-1AF0462F02ED}
+	EndGlobalSection
+EndGlobal
