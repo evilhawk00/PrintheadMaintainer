@@ -38,7 +38,8 @@ Newest version : [1.0.0.0](https://github.com/evilhawk00/PrintheadMaintainer/rel
 		  <img width="100" src="https://github.com/evilhawk00/PrintheadMaintainer/blob/main/OtherResources/Screenshots/Tray_Warning.jpg?raw=true">
 		+ Not functional<br/>
 		  <img width="100" src="https://github.com/evilhawk00/PrintheadMaintainer/blob/main/OtherResources/Screenshots/Tray_Error.jpg?raw=true">
-
++ **The software is seperated in two parts. The System Service part runs under LocalSystem account and the UI part runs under user account**
+	+ The UI can be closed by right clicking the tray icon and select "exit". Please note closing the UI will not affect the scheduled printing function of this software because the background service is still running in the background. Closing the UI only disables the ability of showing a printing failure notification. The UI is just an bridge to communicate with the background service and display the current status to the user. With this kind of implementation, the software can do the printing job even if the PC is still at the user login screen.
 <br/>
 
 ## Image for printing
