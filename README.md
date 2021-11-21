@@ -44,7 +44,7 @@ Newest version : [1.0.0.0](https://github.com/evilhawk00/PrintheadMaintainer/rel
 ## Image for printing
 + **Currently only .bmp image is supported.**
 	+ Users can make their own printing image with photoshop.
-	+ The provided image will be stretched to fit the paper size. If you do not want the image being stretched, try cropping or create the image with the exact dimention ratios of your printer
+	+ The provided image will be stretched to fit the paper size. If you do not want the image being stretched, try cropping or creating the image with the exact dimention ratios of your printer
 	
 		| Size      | Length  |  Width  |
 		| --------  | -----:  | :----:  |
