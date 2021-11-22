@@ -199,9 +199,6 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="Views\evilhawk00_Logo_400x400.png" />
-  </ItemGroup>
-  <ItemGroup>
     <PackageReference Include="Microsoft.Toolkit.Uwp.Notifications">
       <Version>7.1.1</Version>
     </PackageReference>
