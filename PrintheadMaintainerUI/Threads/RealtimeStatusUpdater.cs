@@ -98,7 +98,7 @@ namespace PrintheadMaintainerUI.Threads
                 case NamedPipeConstants.intServerResult_StatusWaitingCountdownBeforePrint:
                     if (!bIfPrintInNextMinuteNotificationDisplayed)
                     {
-                        UWPNotificationUtils.VoidShowUWPNotification("Preparing to print...", "Printhead Guardian will print a page in the next few minutes.");
+                        UWPNotificationUtils.VoidShowUWPNotification("Preparing to print...", "Printhead Maintainer will print a page in the next few minutes.");
                         bIfPrintInNextMinuteNotificationDisplayed = true;
                     }
                     break;

@@ -38,7 +38,7 @@ std:: wstring wsGenerateRamdomHexString(int intNumberOfChar) {
 	}
 
 	std::wstring wsRandomString = L"";
-	for (int i = 0; i < intNumberOfChar -1 ; i++) {
+	for (int i = 0; i < intNumberOfChar ; i++) {
 		wsRandomString += GetRamdomChar();
 	}
 
