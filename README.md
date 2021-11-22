@@ -1,4 +1,4 @@
-# PrintheadMaintainer
+# Printhead Maintainer
 <p align="center">
 <img width="150" height="150" src="https://raw.githubusercontent.com/evilhawk00/PrintheadMaintainer/main/OtherResources/Icons/png/Blue_512x512.png">
 </p>
