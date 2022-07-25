@@ -1,11 +1,8 @@
-# Printhead Maintainer
 <p align="center">
-<img width="150" height="150" src="https://raw.githubusercontent.com/evilhawk00/PrintheadMaintainer/main/OtherResources/Icons/png/Blue_512x512.png">
+<img src="https://raw.githubusercontent.com/evilhawk00/PrintheadMaintainer/main/OtherResources/Repository%20Social%20Preview/Repository%20Social%20Preview.jpg">
 </p>
 
-Printhead Maintainer is a system service designed for printers with continuous ink systems. Aims to prevent the ink from drying out by printing automatically.
-
-##### System requirements :
+### System requirements :
 Windows 10 or higher
 ## Download
 Newest version : [1.0.0.0](https://github.com/evilhawk00/PrintheadMaintainer/releases "1.0.0.0")
