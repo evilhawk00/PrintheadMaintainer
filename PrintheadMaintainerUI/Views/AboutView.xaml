@@ -84,7 +84,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
                 <TextBlock Grid.Column="0" FontSize="18.5" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0" Grid.Row="0" TextWrapping="Wrap" Text="Version" VerticalAlignment="Center"/>
                 <TextBlock Grid.Column="0" FontSize="18.5" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0" Grid.Row="1" TextWrapping="Wrap" Text="Developer" VerticalAlignment="Center" RenderTransformOrigin="-0.021,-0.577"/>
-                <TextBlock Grid.Column="1" FontSize="18.5" FontWeight="SemiBold" HorizontalAlignment="Center"  Height="auto" Margin="0" Grid.Row="0" TextWrapping="Wrap" Text="1.0.0.0" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" FontSize="18.5" FontWeight="SemiBold" HorizontalAlignment="Center"  Height="auto" Margin="0" Grid.Row="0" TextWrapping="Wrap" Text="1.0.0.1" VerticalAlignment="Center" />
 
 
 

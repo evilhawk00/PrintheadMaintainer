@@ -26,17 +26,23 @@ namespace PrintheadMaintainerUI
     /// </summary>
     public partial class App : Application
     {
+        #pragma warning disable IDE0052
         private static Mutex _mutex = null;
+        #pragma warning restore IDE0052
+        private EventWaitHandle _eventWaitHandle;
 
         public bool bStartupMinimized = false;
         protected override void OnStartup(StartupEventArgs e)
         {
-            const string appName = "PrintheadMaintainer";
-            bool createdNew;
+            const string strAppName = "PrintheadMaintainer";
+            const string strUniqueEventName = "{2C4150D2-F22B-4F1D-97FC-7B68EE70FEA6}";
 
-            _mutex = new Mutex(true, appName, out createdNew);
+            bool bCreatedNew;
 
-            
+            _mutex = new Mutex(true, strAppName, out bCreatedNew);
+            _eventWaitHandle = new EventWaitHandle(false, EventResetMode.AutoReset, strUniqueEventName);
+
+
             for (int i = 0; i != e.Args.Length; ++i)
             {
                 if (e.Args[i] == "/silent")
@@ -45,13 +51,31 @@ namespace PrintheadMaintainerUI
                 }
             }
 
-            
-
-            if (!createdNew)
+            if (bCreatedNew)
             {
-                //app is already running! Exiting the application  
-                Current.Shutdown();
+                //create a thread to wait for the event
+                Thread thread = new Thread(
+                    () =>
+                    {
+                        while (_eventWaitHandle.WaitOne())
+                        {
+                            _ = Current.Dispatcher.BeginInvoke(
+                                (System.Action)(() => ((MainWindow)Current.MainWindow).Void_Public_Restore_Window()));
+                        }
+                    });
+
+                //Mark it as background otherwise it will prevent app from exiting.
+                thread.IsBackground = true;
+
+                thread.Start();
+                return;
             }
+
+            //Tell other instance to bring window to front.
+            _ = _eventWaitHandle.Set();
+
+            //Terminate this instance.
+            Shutdown();
 
             base.OnStartup(e);
         }

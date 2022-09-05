@@ -229,7 +229,7 @@ int intIfPrinterHasError(const std::wstring& wsPrinterName) {
     //printer handle is no longer needed
     ClosePrinter(hPrinter);
 
-    for (int i = 0; i < dwJobsReturned; i++)
+    for (unsigned int i = 0; i < dwJobsReturned; i++)
     {
         if (pJobs[i].Status & JOB_STATUS_PRINTING)
         {
@@ -350,7 +350,7 @@ int intIfJobStillInQueueWithOptionalDelete(const std::wstring& wsDocumentNameDis
         return -1;
     }
 
-    for (int i = 0; i < dwJobsInQueue; i++)
+    for (unsigned int i = 0; i < dwJobsInQueue; i++)
     {
         if (pJobs[i].pDocument == wsDocumentNameDisplayedInQueue)
         {

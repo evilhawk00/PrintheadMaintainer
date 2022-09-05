@@ -141,11 +141,7 @@ namespace PrintheadMaintainerUI
             niNotifyIcon.DoubleClick +=
                 delegate (object sender, EventArgs args)
                 {
-                    //switch back to home first
-                    Mediator.Notify("SwitchToHome", "");
-
-                    Show();
-                    WindowState = WindowState.Normal;
+                    VoidRestoreWindow(sender, args);
 
                 };
 
@@ -171,6 +167,11 @@ namespace PrintheadMaintainerUI
             Close();
         }
 
+        public void Void_Public_Restore_Window()
+        {
+            VoidRestoreWindow(null, null);
+        }
+
         private void VoidRestoreWindow(object Sender, EventArgs e)
         {
             //switch back to home first
@@ -178,6 +179,10 @@ namespace PrintheadMaintainerUI
 
             Show();
             WindowState = WindowState.Normal;
+
+            //make this window to top
+            _ = Activate();
+            
         }
 
         private void VoidMinimizeWindowToTray(object sender, RoutedEventArgs e) {

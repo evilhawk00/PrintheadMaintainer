@@ -3,6 +3,18 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+
+
+####Custom built files in InstallationFilesSourceDir for project Printhead Maintainer####
+PrintheadMaintainerInstaller/InstallationFilesSourceDir/Microsoft.Toolkit.Uwp.Notifications.dll
+PrintheadMaintainerInstaller/InstallationFilesSourceDir/PrintheadMaintainer.exe
+PrintheadMaintainerInstaller/InstallationFilesSourceDir/PrintheadMaintainSvc.exe
+PrintheadMaintainerInstaller/InstallationFilesSourceDir/System.ValueTuple.dll
+
+
+
+
+
 # User-specific files
 *.rsuser
 *.suo

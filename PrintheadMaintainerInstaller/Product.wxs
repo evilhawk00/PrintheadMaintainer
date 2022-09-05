@@ -1,10 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-	<Product Id="{9F0BB602-AFD5-4242-A073-38B724C60E12}" Name="Printhead Maintainer" Language="1033" Version="1.0.0.0" Manufacturer="evilhawk00" UpgradeCode="{836CF211-F067-43F8-A021-6BB3E007F9AF}">
+	<Product Id="*" Name="Printhead Maintainer" Language="1033" Version="1.0.0.1" Manufacturer="evilhawk00" UpgradeCode="{836CF211-F067-43F8-A021-6BB3E007F9AF}">
 		<Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" InstallPrivileges="elevated" Platform="x86"/>
 
-		<MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
 		<MediaTemplate EmbedCab="yes"/>
+    
+    <Upgrade Id="{836CF211-F067-43F8-A021-6BB3E007F9AF}">
+      <UpgradeVersion Property="PREVIOUSVERSIONSINSTALLED" Minimum="1.0.0.0" IncludeMinimum='yes'/>
+    </Upgrade>
+    <InstallExecuteSequence>
+      <RemoveExistingProducts After="InstallInitialize" />
+    </InstallExecuteSequence>
     
     <Feature Id='Complete' Title='Printhead Maintainer' Description='The complete package.' Display='expand' Level='1' ConfigurableDirectory='INSTALLFOLDER'>
       <Feature Id='MainProgram' Title='Program' Description='The main executable.' Level='1'>
@@ -108,6 +114,4 @@
     </ComponentGroup>
 	</Fragment>
 
-
-  
 </Wix>
