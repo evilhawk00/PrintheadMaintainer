@@ -5,7 +5,7 @@
 ### System requirements :
 Windows 10 or higher
 ## Download
-Newest version : [1.0.0.0](https://github.com/evilhawk00/PrintheadMaintainer/releases "1.0.0.0")
+Newest version : [1.0.0.1](https://github.com/evilhawk00/PrintheadMaintainer/releases "1.0.0.1")
 
 ## Screenshots
 <img width="550" src="https://github.com/evilhawk00/PrintheadMaintainer/blob/main/OtherResources/Screenshots/HomeScreen.jpg?raw=true">
