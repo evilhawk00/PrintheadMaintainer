@@ -23,6 +23,7 @@ namespace PrintheadMaintainerUI.GlobalConstants
         public const string strRegistryValue_Enabled = "Enabled";
         public const string strRegistryValue_Interval = "Interval-Day";
         public const string strRegistryValue_PrinterName = "PrinterName";
+        public const string strRegistryValue_PrinterPaperSource = "PrinterPaperSource";
         public const string strRegistryValue_BmpPath = "BmpFilePath";
 
         public const string strRegistryValue_LastPrintTime_Year = "LastPrint-Year";

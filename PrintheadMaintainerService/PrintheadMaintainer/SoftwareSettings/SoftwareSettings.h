@@ -24,6 +24,7 @@
 
 #define DEF_Registry_BmpFilePath L"BmpFilePath"
 #define DEF_Registry_PrinterName L"PrinterName"
+#define DEF_Registry_PrinterPaperSource L"PrinterPaperSource"
 
 #define DEF_Registry_LastPrintTime_Year L"LastPrint-Year"
 #define DEF_Registry_LastPrintTime_Month L"LastPrint-Month"
@@ -72,7 +73,7 @@ extern int gs_intIntervalDay;
 
 extern std::wstring gs_wsBmpPath;
 extern std::wstring gs_wsPrinterName;
-
+extern int gs_intPrinterPaperSource;
 
 bool bLoadSoftwareSettingFromRegistry(bool bCheckEnabledAndInterval);
 bool bWriteLastPrintTimeToRegistry();

@@ -33,6 +33,7 @@
 #define JobFlag_WriteRegistryInterval L"0x03"
 #define JobFlag_WriteRegistryPrinterName L"0x04"
 #define JobFlag_WriteRegistryBmpPath L"0x05"
+#define JobFlag_WriteRegistryPaperSource L"0x07"
 #define JobFlag_NotifyPrintingFailedRecordDisplayed L"0x06"
 #define JobFlag_QueryServerStatus L"0x99"
 
@@ -215,6 +216,13 @@ int intProcessClientRequestByMsg(const std::wstring &strClientRequestMsg, std::w
 		intLogType = DEF_intLogType_Settings_Change_Image_To;
 		wsLogParameter = wsReceivedValue;
 	}
+	else if (wsCommand == JobFlag_WriteRegistryPaperSource) {
+
+		wsRegistryValueName = DEF_Registry_PrinterPaperSource;
+		bValueIsInt = true;
+		intLogType = DEF_intLogType_Settings_Change_PaperSource_To;
+		wsLogParameter = wsReceivedValue;
+	}
 	else {
 
 		//JobFlag unknown
@@ -249,7 +257,7 @@ int intProcessClientRequestByMsg(const std::wstring &strClientRequestMsg, std::w
 			//before writing, check if wsReceivedValue has correct value
 			if (wsRegistryValueName == DEF_Registry_Enabled) {
 				//check if value is 0 or 1
-				
+
 				if (intInputData == 1) {
 					intLogType = DEF_intLogType_Settings_Change_Enabled_ON;
 				}
@@ -266,9 +274,20 @@ int intProcessClientRequestByMsg(const std::wstring &strClientRequestMsg, std::w
 					return intServerResult_IllegalMsgReceived;
 				}
 			}
+			else if (wsRegistryValueName == DEF_Registry_PrinterPaperSource) {
+				if (intInputData < 0) {
+					return intServerResult_IllegalMsgReceived;
+				}
+
+				if (intInputData == 0) {
+					wsLogParameter = L"(Use printer default)";
+				}
+				else {
+					wsLogParameter = std::to_wstring(intInputData);
+				}
+			}
 
 			bRegistryWriteResult = bRegistryWriteInteger(hKey, wsRegistryValueName.c_str(), intInputData);
-
 		}
 		else {
 			//invalid value data, abort

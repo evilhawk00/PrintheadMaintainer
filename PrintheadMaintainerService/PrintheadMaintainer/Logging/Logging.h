@@ -33,6 +33,7 @@
 #define DEF_intLogType_Settings_Change_Enabled_ON 9
 #define DEF_intLogType_Settings_Change_Enabled_OFF 10
 #define DEF_intLogType_Settings_Change_Printer_To 11
+#define DEF_intLogType_Settings_Change_PaperSource_To 12
 
 namespace Logging
 {

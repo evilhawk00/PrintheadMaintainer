@@ -50,13 +50,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         <!--<Grid Grid.Row="2" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#f6f6f6">-->
         <Grid Grid.Row="2" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="White">
             <Grid.RowDefinitions>
-                <RowDefinition Height="40" />
-                <RowDefinition Height="70"/>
-                <RowDefinition Height="70" />
-                <RowDefinition Height="70" />
-                <RowDefinition Height="70" />
+                <RowDefinition Height="20" />
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
-                
             </Grid.RowDefinitions>
 
             <Grid.ColumnDefinitions>
@@ -69,19 +69,23 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
             </Grid.ColumnDefinitions>
 
 
-            <TextBlock FontWeight="Medium" FontSize="17" Grid.Row="1" Grid.Column="1" Margin="0,0,0,0" TextWrapping="Wrap" Text="Scheduled Printing" VerticalAlignment="Top" HorizontalAlignment="Left"/>
-            <TextBlock FontWeight="Medium" FontSize="17" Grid.Row="2" Grid.Column="1" Margin="0,0,0,0" TextWrapping="Wrap" Text="Target Printer" VerticalAlignment="Top" HorizontalAlignment="Left"/>
-            <TextBlock FontWeight="Medium" FontSize="17" Grid.Row="3" Grid.Column="1" Margin="0,0,0,0" TextWrapping="Wrap" Text="Printing Interval" VerticalAlignment="Top" HorizontalAlignment="Left"/>
-            <TextBlock FontWeight="Medium" FontSize="17" Grid.Row="4" Grid.Column="1" Margin="0,0,0,0" TextWrapping="Wrap" Text="Image For Printing" VerticalAlignment="Top" HorizontalAlignment="Left"/>
+            <TextBlock FontWeight="Medium" FontSize="17" Grid.Row="1" Grid.Column="1" Margin="0,0,0,12" TextWrapping="Wrap" Text="Scheduled Printing" VerticalAlignment="Top" HorizontalAlignment="Left"/>
+            <TextBlock FontWeight="Medium" FontSize="17" Grid.Row="2" Grid.Column="1" Margin="0,0,0,12" TextWrapping="Wrap" Text="Target Printer" VerticalAlignment="Top" HorizontalAlignment="Left"/>
+            <TextBlock FontWeight="Medium" FontSize="17" Grid.Row="4" Grid.Column="1" Margin="0,0,0,12" TextWrapping="Wrap" Text="Printing Interval" VerticalAlignment="Top" HorizontalAlignment="Left"/>
+            <TextBlock FontWeight="Medium" FontSize="17" Grid.Row="5" Grid.Column="1" Margin="0,0,0,12" TextWrapping="Wrap" Text="Image For Printing" VerticalAlignment="Top" HorizontalAlignment="Left"/>
 
-            <CheckBox IsChecked="{Binding BSettingsEnabled}" Margin="0,0,0,0" Grid.Row="1" Grid.Column="3" VerticalAlignment="Top" HorizontalAlignment="Center"/>
+            <CheckBox IsChecked="{Binding BSettingsEnabled}" Margin="0,0,0,12" Grid.Row="1" Grid.Column="3" VerticalAlignment="Top" HorizontalAlignment="Center"/>
 
 
 
-            <TextBlock Text="{Binding StrSettingsPrinterName}" Grid.Column="2" Grid.Row="2" FontSize="17" VerticalAlignment="Top"/>
-            <Button Content="Select" Grid.Column="3" Grid.Row="2" FontSize="13" FontWeight="SemiBold" Style="{StaticResource LightButtonStyle}" VerticalAlignment="Top" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="30" Width="auto" Command="{Binding SwitchToChoosePrinterView}"/>
+            <TextBlock Text="{Binding StrSettingsPrinterName}" Grid.Column="2" Grid.Row="2" FontSize="17" Margin="0,0,16,12" VerticalAlignment="Top" TextTrimming="CharacterEllipsis"/>
+            <Button Content="Select" Grid.Column="3" Grid.Row="2" FontSize="13" FontWeight="SemiBold" Style="{StaticResource LightButtonStyle}" Margin="0,0,0,12" VerticalAlignment="Top" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="30" Width="auto" Command="{Binding SwitchToChoosePrinterView}"/>
 
-            <Grid Grid.Row="3" Grid.Column="3">
+            <TextBlock FontWeight="Medium" FontSize="17" Grid.Row="3" Grid.Column="1" Margin="0,0,0,12" TextWrapping="Wrap" Text="Paper Source" VerticalAlignment="Top" HorizontalAlignment="Left"/>
+            <ComboBox Grid.Row="3" Grid.Column="2" ItemsSource="{Binding PaperSourceOptions}" SelectedItem="{Binding SelectedPaperSourceOption, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" DisplayMemberPath="DisplayName" Margin="0,0,16,12" VerticalAlignment="Top" HorizontalAlignment="Stretch"/>
+            <Button Content="Refresh" Grid.Column="3" Grid.Row="3" FontSize="13" FontWeight="SemiBold" Style="{StaticResource LightButtonStyle}" Margin="0,0,0,12" HorizontalAlignment="Stretch" Width="auto" Height="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Top" Command="{Binding CmdRefreshPaperSources}"/>
+
+            <Grid Grid.Row="4" Grid.Column="3" Margin="0,0,0,12">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
@@ -91,8 +95,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
-                <TextBox Grid.Row="0" Text="{Binding IntSettingsInterval}" Grid.Column="0" Height="30" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" PreviewTextInput="PreviewTextInput_NumberOnly" TextChanged="TextChanged_RemoveSpace" InputMethod.IsInputMethodEnabled="False"/>
-                <TextBlock Grid.Row="0" Grid.Column="1" Text="Day(s)" Margin="3,0,0,0" FontSize="17" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="0" Text="{Binding IntSettingsInterval}" Grid.Column="0" Height="30" Margin="0,0,0,12" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" PreviewTextInput="PreviewTextInput_NumberOnly" TextChanged="TextChanged_RemoveSpace" InputMethod.IsInputMethodEnabled="False"/>
+                <TextBlock Grid.Row="0" Grid.Column="1" Text="Day(s)" Margin="3,0,0,12" FontSize="17" VerticalAlignment="Center"/>
                 
             </Grid>
 
@@ -100,8 +104,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
 
-            <TextBlock Grid.Column="2" Grid.Row="4" Text="{Binding StrSettingsImagePath}" FontSize="17" VerticalAlignment="Top" HorizontalAlignment="Left" TextWrapping="Wrap"/>
-            <Button Content="Select" Grid.Column="3" Grid.Row="4" FontSize="13" FontWeight="SemiBold" Style="{StaticResource LightButtonStyle}" HorizontalAlignment="Stretch" Width="auto" Height="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Top" Command="{Binding CmdSelectBmp}"/>
+            <TextBlock Grid.Column="2" Grid.Row="5" Text="{Binding StrSettingsImagePath}" FontSize="17" Margin="0,0,16,12" VerticalAlignment="Top" HorizontalAlignment="Left" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"/>
+            <Button Content="Select" Grid.Column="3" Grid.Row="5" FontSize="13" FontWeight="SemiBold" Style="{StaticResource LightButtonStyle}" Margin="0,0,0,12" HorizontalAlignment="Stretch" Width="auto" Height="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Top" Command="{Binding CmdSelectBmp}"/>
             
 
             
