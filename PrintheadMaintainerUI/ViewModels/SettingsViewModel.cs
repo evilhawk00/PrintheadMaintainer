@@ -21,10 +21,13 @@ using PrintheadMaintainerUI.Commands;
 using PrintheadMaintainerUI.GlobalConstants;
 using PrintheadMaintainerUI.Interfaces;
 using PrintheadMaintainerUI.Mediators;
+using PrintheadMaintainerUI.Models;
 using PrintheadMaintainerUI.NamedPipeClient;
 using PrintheadMaintainerUI.Singletons;
 using PrintheadMaintainerUI.Utils;
 using System;
+using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -35,6 +38,7 @@ namespace PrintheadMaintainerUI.ViewModels
     {
         private ICommand _switchToHomeView;
         private ICommand _switchToChoosePrinterView;
+        private ICommand _refreshPaperSources;
 
         private bool _bSettingsEnabled;
         private bool _bSettingsEnabled_Original;
@@ -51,17 +55,24 @@ namespace PrintheadMaintainerUI.ViewModels
 
         private string _strTextApplyResult;
 
+        private ObservableCollection<PaperSourceOption> _paperSourceOptions = new ObservableCollection<PaperSourceOption>();
+        private PaperSourceOption _selectedPaperSourceOption;
+        private int _currentPaperSourceRawKind;
+        private int? _pendingPaperSourceRawKind;
+
         //LOCKS
         private bool bApplyEnabledSettings_LOCK = false;
         private bool bApplyPrinterNameSettings_LOCK = false;
         private bool bApplyIntervalSettings_LOCK = false;
         private bool bApplyBmpPathSettings_LOCK = false;
+        private bool bApplyPaperSourceSettings_LOCK = false;
 
         //Apply Result Flag
         private bool bApplyResultOK_Enabled = true;
         private bool bApplyResultOK_PrinterName = true;
         private bool bApplyResultOK_Interval = true;
         private bool bApplyResultOK_BmpPath = true;
+        private bool bApplyResultOK_PaperSource = true;
 
         public ICommand SwitchToHomeView
         {
@@ -99,6 +110,28 @@ namespace PrintheadMaintainerUI.ViewModels
             }
 
         }
+
+        public ICommand CmdRefreshPaperSources
+
+        {
+
+            get
+
+            {
+
+                return _refreshPaperSources ?? (_refreshPaperSources = new RelayCommand(x =>
+
+                {
+
+                    VoidReloadPaperSourcesForCurrentPrinter();
+
+                }));
+
+            }
+
+        }
+
+
 
         public ICommand CmdApplySettings
         {
@@ -140,28 +173,28 @@ namespace PrintheadMaintainerUI.ViewModels
         private bool BIsEnabled_BtnApplyOrDiscardChanges()
         {
             //first check all locks
-            if (!bApplyEnabledSettings_LOCK && !bApplyPrinterNameSettings_LOCK && !bApplyIntervalSettings_LOCK && !bApplyBmpPathSettings_LOCK)
+            if (!bApplyEnabledSettings_LOCK && !bApplyPrinterNameSettings_LOCK && !bApplyIntervalSettings_LOCK && !bApplyBmpPathSettings_LOCK && !bApplyPaperSourceSettings_LOCK)
             {
                 // all locks are not locked
 
                 if (_bSettingsEnabled != _bSettingsEnabled_Original)
                 {
-
                     return true;
                 }
                 else if (_strUnsaved_New_PrinterName != null && !_strUnsaved_New_PrinterName.Equals(""))
                 {
-
+                    return true;
+                }
+                else if (_pendingPaperSourceRawKind.HasValue)
+                {
                     return true;
                 }
                 else if (_intSettingsInterval != _intSettingsInterval_Original || bIfSettingsIntervalUsesDefaultValue)
                 {
-
                     return true;
                 }
                 else if (_strUnsaved_New_SettingsImagePath != null && !_strUnsaved_New_SettingsImagePath.Equals(""))
                 {
-
                     return true;
                 }
                 else
@@ -170,14 +203,10 @@ namespace PrintheadMaintainerUI.ViewModels
                 }
 
             }
-            else {
-
+            else
+            {
                 return false;
             }
-
-
-            
-
         }
 
         public bool BSettingsEnabled {
@@ -240,6 +269,45 @@ namespace PrintheadMaintainerUI.ViewModels
 
         }
 
+        public ObservableCollection<PaperSourceOption> PaperSourceOptions
+        {
+            get
+            {
+                return _paperSourceOptions;
+            }
+        }
+
+        public PaperSourceOption SelectedPaperSourceOption
+        {
+            get
+            {
+                return _selectedPaperSourceOption;
+            }
+            set
+            {
+                if (_selectedPaperSourceOption != value)
+                {
+                    _selectedPaperSourceOption = value;
+
+                    if (value == null)
+                    {
+                        _pendingPaperSourceRawKind = null;
+                    }
+                    else if (value.RawKind != _currentPaperSourceRawKind)
+                    {
+                        _pendingPaperSourceRawKind = value.RawKind;
+                    }
+                    else
+                    {
+                        _pendingPaperSourceRawKind = null;
+                    }
+
+                    OnPropertyChanged(nameof(SelectedPaperSourceOption));
+                    CommandManager.InvalidateRequerySuggested();
+                }
+            }
+        }
+
         public string StrTextApplyResult
         {
             get {
@@ -283,6 +351,10 @@ namespace PrintheadMaintainerUI.ViewModels
                 bIfSettingsIntervalUsesDefaultValue = true;
                 _strSettingsImagePath = "(Not set)";
 
+                _currentPaperSourceRawKind = 0;
+                _pendingPaperSourceRawKind = null;
+                VoidReloadPaperSourcesForPrinter(null, _currentPaperSourceRawKind, false);
+
                 return;
             }
 
@@ -307,6 +379,21 @@ namespace PrintheadMaintainerUI.ViewModels
             else {
                 _strPrinterName = "(Not set)";
             }
+
+            int intResultPaperSource = RegistryUtils.IntReadUnsignedInteger(rkHandle, RegistryConstants.strRegistryValue_PrinterPaperSource);
+            if (intResultPaperSource >= 0)
+            {
+                _currentPaperSourceRawKind = intResultPaperSource;
+            }
+            else
+            {
+                _currentPaperSourceRawKind = 0;
+            }
+
+            _pendingPaperSourceRawKind = null;
+
+            string printerNameForSources = (!string.IsNullOrEmpty(_strPrinterName) && !_strPrinterName.Equals("(Not set)", StringComparison.Ordinal)) ? _strPrinterName : null;
+            VoidReloadPaperSourcesForPrinter(printerNameForSources, _currentPaperSourceRawKind, false);
 
             int intResultInterval = RegistryUtils.IntReadUnsignedInteger(rkHandle, RegistryConstants.strRegistryValue_Interval);
             if (intResultInterval > 0)
@@ -407,10 +494,13 @@ namespace PrintheadMaintainerUI.ViewModels
             VoidResetPrinterNameSingleton();
             _strUnsaved_New_PrinterName = null;
 
+            VoidReloadPaperSourcesForCurrentPrinter();
+
             OnPropertyChanged(nameof(StrSettingsPrinterName));
 
             bApplyPrinterNameSettings_LOCK = false;
             VoidUpdateText_ApplyResult();
+            CommandManager.InvalidateRequerySuggested();
             return;
         }
 
@@ -487,15 +577,19 @@ namespace PrintheadMaintainerUI.ViewModels
             PrinterNameSingletons pnsInstance = PrinterNameSingletons.Instance;
             string strResult = pnsInstance.strPrinterName;
 
-            if (strResult != null && !strResult.Equals(""))
+            if (!string.IsNullOrEmpty(strResult))
             {
-                _strUnsaved_New_PrinterName = strResult;
+                if (!string.Equals(_strUnsaved_New_PrinterName, strResult, StringComparison.Ordinal))
+                {
+                    _strUnsaved_New_PrinterName = strResult;
+                    _pendingPaperSourceRawKind = null;
+                    VoidReloadPaperSourcesForPrinter(_strUnsaved_New_PrinterName, 0, true);
+                }
+
                 return true;
             }
-            else {
-                return false;
-            }
 
+            return false;
 
         }
 
@@ -535,6 +629,12 @@ namespace PrintheadMaintainerUI.ViewModels
                 VoidUpdateText_ApplyResult();
             }
 
+            if (_pendingPaperSourceRawKind.HasValue) {
+
+                VoidApplyPaperSourceSettings();
+                VoidUpdateText_ApplyResult();
+            }
+
             if (_intSettingsInterval != _intSettingsInterval_Original || bIfSettingsIntervalUsesDefaultValue) {
 
                 VoidApplyIntervalSettings();
@@ -556,19 +656,125 @@ namespace PrintheadMaintainerUI.ViewModels
             _strUnsaved_New_PrinterName = null;
             _intSettingsInterval = _intSettingsInterval_Original;
             _strUnsaved_New_SettingsImagePath = null;
+            _pendingPaperSourceRawKind = null;
+
+            string printerNameForSources = (!string.IsNullOrEmpty(_strPrinterName) && !_strPrinterName.Equals("(Not set)", StringComparison.Ordinal)) ? _strPrinterName : null;
+            VoidReloadPaperSourcesForPrinter(printerNameForSources, _currentPaperSourceRawKind, false);
 
             OnPropertyChanged(nameof(BSettingsEnabled));
             OnPropertyChanged(nameof(StrSettingsPrinterName));
             OnPropertyChanged(nameof(IntSettingsInterval));
             OnPropertyChanged(nameof(StrSettingsImagePath));
 
+            CommandManager.InvalidateRequerySuggested();
 
+        }
 
+        private void VoidReloadPaperSourcesForCurrentPrinter() {
+
+            string printerName = null;
+            int? rawKindToSelect = null;
+            bool markAsPending = false;
+
+            if (!string.IsNullOrEmpty(_strUnsaved_New_PrinterName))
+            {
+                printerName = _strUnsaved_New_PrinterName;
+                rawKindToSelect = _pendingPaperSourceRawKind ?? (_selectedPaperSourceOption?.RawKind ?? 0);
+                markAsPending = _pendingPaperSourceRawKind.HasValue;
+            }
+            else if (!string.IsNullOrEmpty(_strPrinterName) && !_strPrinterName.Equals("(Not set)", StringComparison.Ordinal))
+            {
+                printerName = _strPrinterName;
+                rawKindToSelect = _pendingPaperSourceRawKind ?? _currentPaperSourceRawKind;
+                markAsPending = _pendingPaperSourceRawKind.HasValue;
+            }
+
+            VoidReloadPaperSourcesForPrinter(printerName, rawKindToSelect, markAsPending);
+        }
+
+        private void VoidReloadPaperSourcesForPrinter(string printerName, int? rawKindToSelect, bool markAsPendingChange) {
+
+            var options = new ObservableCollection<PaperSourceOption>()
+            {
+                new PaperSourceOption("(Use printer default)", 0)
+            };
+
+            if (!string.IsNullOrWhiteSpace(printerName))
+            {
+                foreach (var option in PrinterCapabilityUtils.GetPaperSources(printerName))
+                {
+                    if (!options.Any(existing => existing.RawKind == option.RawKind))
+                    {
+                        options.Add(option);
+                    }
+                }
+            }
+
+            PaperSourceOption optionToSelect = null;
+
+            if (rawKindToSelect.HasValue)
+            {
+                optionToSelect = options.FirstOrDefault(o => o.RawKind == rawKindToSelect.Value);
+            }
+
+            if (optionToSelect == null && options.Count > 0)
+            {
+                optionToSelect = options[0];
+            }
+
+            _paperSourceOptions = options;
+            _selectedPaperSourceOption = optionToSelect;
+
+            if (markAsPendingChange && optionToSelect != null)
+            {
+                _pendingPaperSourceRawKind = optionToSelect.RawKind;
+            }
+            else if (_pendingPaperSourceRawKind.HasValue && optionToSelect != null && optionToSelect.RawKind == _currentPaperSourceRawKind)
+            {
+                _pendingPaperSourceRawKind = null;
+            }
+            else if (!markAsPendingChange && optionToSelect != null && optionToSelect.RawKind != _currentPaperSourceRawKind)
+            {
+                _pendingPaperSourceRawKind = optionToSelect.RawKind;
+            }
+
+            OnPropertyChanged(nameof(PaperSourceOptions));
+            OnPropertyChanged(nameof(SelectedPaperSourceOption));
+            CommandManager.InvalidateRequerySuggested();
+        }
+
+        private void VoidApplyPaperSourceSettings() {
+
+            if (!_pendingPaperSourceRawKind.HasValue)
+            {
+                return;
+            }
+
+            bApplyPaperSourceSettings_LOCK = true;
+            bApplyResultOK_PaperSource = false;
+
+            string strRequestID = RandomUtils.StrGenerateRandomHexadecimalString(8);
+            string strFinalMsg = IPCClient.StrMessageEncoder(strRequestID, NamedPipeConstants.JobFlag_WriteRegistryPaperSource, _pendingPaperSourceRawKind.Value.ToString());
+            _ = IPCClient.AsyncSendMsgToServerAndDecodeResponse(strRequestID, strFinalMsg, VoidApplyPaperSourceSettings_Callback);
+        }
+
+        private void VoidApplyPaperSourceSettings_Callback(int intResult) {
+
+            if (intResult == NamedPipeConstants.intServerResult_SUCCESS && _selectedPaperSourceOption != null)
+            {
+                _currentPaperSourceRawKind = _selectedPaperSourceOption.RawKind;
+                _pendingPaperSourceRawKind = null;
+                bApplyResultOK_PaperSource = true;
+            }
+
+            bApplyPaperSourceSettings_LOCK = false;
+            VoidUpdateText_ApplyResult();
+            CommandManager.InvalidateRequerySuggested();
         }
 
         private void VoidUpdateText_ApplyResult() {
 
-            if (bApplyEnabledSettings_LOCK || bApplyPrinterNameSettings_LOCK || bApplyIntervalSettings_LOCK || bApplyBmpPathSettings_LOCK)
+            if (bApplyEnabledSettings_LOCK || bApplyPrinterNameSettings_LOCK || bApplyIntervalSettings_LOCK || bApplyBmpPathSettings_LOCK || bApplyPaperSourceSettings_LOCK)
             {
 
                 StrTextApplyResult = "Sending setting value to the service, please wait...";
@@ -576,7 +782,7 @@ namespace PrintheadMaintainerUI.ViewModels
             else {
                 //all action finished, now check result
 
-                if (bApplyResultOK_Enabled && bApplyResultOK_PrinterName && bApplyResultOK_Interval && bApplyResultOK_BmpPath)
+                if (bApplyResultOK_Enabled && bApplyResultOK_PrinterName && bApplyResultOK_Interval && bApplyResultOK_BmpPath && bApplyResultOK_PaperSource)
                 {
                     //all action success
                     StrTextApplyResult = "All action finished sucessfully.";

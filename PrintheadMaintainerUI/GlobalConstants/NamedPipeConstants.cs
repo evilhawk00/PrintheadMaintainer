@@ -31,6 +31,7 @@ namespace PrintheadMaintainerUI.GlobalConstants
         public const string JobFlag_WriteRegistryInterval = "0x03";
         public const string JobFlag_WriteRegistryPrinterName = "0x04";
         public const string JobFlag_WriteRegistryBmpPath = "0x05";
+        public const string JobFlag_WriteRegistryPaperSource = "0x07";
         public const string JobFlag_NotifyPrintingFailedRecordDisplayed = "0x06";
         public const string JobFlag_QueryServerStatus = "0x99";
 

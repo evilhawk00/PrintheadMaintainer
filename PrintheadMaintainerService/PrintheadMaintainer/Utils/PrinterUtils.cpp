@@ -18,8 +18,11 @@
 */
 #include <string>
 #include <Windows.h>
+#include <Winspool.h>
+#include <cstdlib>
 
 #include "RandomUtils.h"
+#include "../SoftwareSettings/SoftwareSettings.h"
 
 std::wstring wsGenerateRandomDocumentName() {
 
@@ -44,8 +47,46 @@ int intSendPrintBmpJobToPrinter(const std::wstring &wsDocumentNameToDisplayInQue
     wmemcpy_s(wBuffer, 256, wsPrinterName.c_str(), wsPrinterName.size());
     LPWSTR lpPrinterName = wBuffer;
 
+    HANDLE hPrinterHandle = NULL;
+    PDEVMODE pDevMode = NULL;
+
     //getting the printer DC
-    HDC PrinterDC = CreateDC(L"WINSPOOL", lpPrinterName, NULL, NULL);
+    if (gs_intPrinterPaperSource > 0) {
+        if (OpenPrinter(lpPrinterName, &hPrinterHandle, NULL)) {
+            LONG lDevModeSize = DocumentProperties(NULL, hPrinterHandle, lpPrinterName, NULL, NULL, 0);
+            if (lDevModeSize > 0) {
+                pDevMode = static_cast<PDEVMODE>(malloc(lDevModeSize));
+                if (pDevMode != NULL) {
+                    if (DocumentProperties(NULL, hPrinterHandle, lpPrinterName, pDevMode, NULL, DM_OUT_BUFFER) == IDOK) {
+                        pDevMode->dmFields |= DM_DEFAULTSOURCE;
+                        pDevMode->dmDefaultSource = static_cast<short>(gs_intPrinterPaperSource);
+                    } else {
+                        free(pDevMode);
+                        pDevMode = NULL;
+                    }
+                }
+            }
+        }
+    }
+
+    HDC PrinterDC = NULL;
+    if (pDevMode != NULL) {
+        PrinterDC = CreateDC(L"WINSPOOL", lpPrinterName, NULL, pDevMode);
+    } else {
+        PrinterDC = CreateDC(L"WINSPOOL", lpPrinterName, NULL, NULL);
+    }
+
+    if (PrinterDC == NULL) {
+        if (pDevMode != NULL) {
+            free(pDevMode);
+            pDevMode = NULL;
+        }
+        if (hPrinterHandle != NULL) {
+            ClosePrinter(hPrinterHandle);
+            hPrinterHandle = NULL;
+        }
+        return -1;
+    }
 
     //start doc and page
     //the print thing starts here
@@ -108,6 +149,14 @@ int intSendPrintBmpJobToPrinter(const std::wstring &wsDocumentNameToDisplayInQue
 
     //delete GDI resources
     DeleteDC(PrinterDC);
+
+    if (hPrinterHandle != NULL) {
+        ClosePrinter(hPrinterHandle);
+    }
+
+    if (pDevMode != NULL) {
+        free(pDevMode);
+    }
 
     DeleteObject(hThisBmp);
 

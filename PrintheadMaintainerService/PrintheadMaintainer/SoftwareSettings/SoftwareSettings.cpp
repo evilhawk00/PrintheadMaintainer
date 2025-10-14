@@ -38,6 +38,7 @@ int gs_intIntervalDay;
 
 std::wstring gs_wsBmpPath;
 std::wstring gs_wsPrinterName;
+int gs_intPrinterPaperSource = 0;
 //end extern global
 
 bool bReadBmpSettingAndCheckBmp(HKEY hKeyHandle, std::wstring& wsOutputBmpPath) {
@@ -492,6 +493,14 @@ bool bLoadSoftwareSettingFromRegistry(bool bCheckEnabledAndInterval) {
 
     //assign queried value to global
     gs_wsPrinterName = wsQueriedValue_PrinterName;
+
+    gs_intPrinterPaperSource = 0;
+
+    int intQueriedValue_PrinterPaperSource;
+    int intResult_PrinterPaperSource = intRegistryReadInteger(hKey, DEF_Registry_PrinterPaperSource, intQueriedValue_PrinterPaperSource);
+    if (intResult_PrinterPaperSource == 0 && intQueriedValue_PrinterPaperSource >= 0) {
+        gs_intPrinterPaperSource = intQueriedValue_PrinterPaperSource;
+    }
 
     if (bCheckEnabledAndInterval) {
 

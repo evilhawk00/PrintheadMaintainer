@@ -89,11 +89,13 @@
     <Compile Include="GlobalConstants\ServiceConstants.cs" />
     <Compile Include="Interfaces\IPageViewModel.cs" />
     <Compile Include="Mediators\Mediator.cs" />
+    <Compile Include="Models\PaperSourceOption.cs" />
     <Compile Include="NamedPipeClient\IPCClient.cs" />
     <Compile Include="Singletons\PrinterNameSingletons.cs" />
     <Compile Include="Threads\RealtimeStatusUpdater.cs" />
     <Compile Include="Utils\FileSelectorUtils.cs" />
     <Compile Include="Utils\RandomUtils.cs" />
+    <Compile Include="Utils\PrinterCapabilityUtils.cs" />
     <Compile Include="Utils\RegistryUtils.cs" />
     <Compile Include="Utils\ServiceUtils.cs" />
     <Compile Include="Utils\UWPNotificationUtils.cs" />

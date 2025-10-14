@@ -6,6 +6,7 @@
 Windows 10 or higher
 ## Download
 Newest version : [1.0.0.1](https://github.com/evilhawk00/PrintheadMaintainer/releases "1.0.0.1")
+Upcoming version (planned v1.1.0.0): Adds optional paper source / printer tray selection in Settings.
 
 ## Screenshots
 <img width="550" src="https://github.com/evilhawk00/PrintheadMaintainer/blob/main/OtherResources/Screenshots/HomeScreen.jpg?raw=true">
@@ -13,7 +14,7 @@ Newest version : [1.0.0.1](https://github.com/evilhawk00/PrintheadMaintainer/rel
 <img width="275" src="https://github.com/evilhawk00/PrintheadMaintainer/blob/main/OtherResources/Screenshots/HomeScreen_Warning.jpg?raw=true"><img width="275" src="https://github.com/evilhawk00/PrintheadMaintainer/blob/main/OtherResources/Screenshots/HomeScreen_Error.jpg?raw=true">
 
 <img width="550" src="https://github.com/evilhawk00/PrintheadMaintainer/blob/main/OtherResources/Screenshots/PrintNowScreen.jpg?raw=true">
-<img width="550" src="https://github.com/evilhawk00/PrintheadMaintainer/blob/main/OtherResources/Screenshots/SettingsScreen.jpg?raw=true">
+<img width="550" src="./PHM_Settings_New.PNG?raw=true" alt="Settings screen showing paper source selection">
 <img width="550" src="https://github.com/evilhawk00/PrintheadMaintainer/blob/main/OtherResources/Screenshots/LogsScreen.jpg?raw=true">
 
 ## Features
@@ -26,6 +27,9 @@ Newest version : [1.0.0.1](https://github.com/evilhawk00/PrintheadMaintainer/rel
 		+ Scheduled printing has failed.<br/>
 		  <img width="300" src="https://github.com/evilhawk00/PrintheadMaintainer/blob/main/OtherResources/Screenshots/Notification_Failure.jpg?raw=true">
 		<br/>
++ **Choose a specific paper source / printer tray for scheduled prints.**
+	+ Settings now enumerates the printer's available paper sources so maintenance jobs can target a non-default tray.
+
 + **Tray icon shows the current state of the software, user can know if scheduled printing has failed by a quick glance.**
 	+ Tray icon has these different states:
 		+ Functional<br/>

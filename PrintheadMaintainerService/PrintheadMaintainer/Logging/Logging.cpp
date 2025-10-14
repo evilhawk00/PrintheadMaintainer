@@ -240,6 +240,8 @@ std::wstring Logging::wsGetLogMessageByInt(int intLogType, const std::wstring &w
         return L"The scheduled printing has been set to disabled" + wsWindowsNewLineMarker;
     case DEF_intLogType_Settings_Change_Printer_To:
         return L"The target printer has been changed to " + wsCustomParameter + wsWindowsNewLineMarker;
+    case DEF_intLogType_Settings_Change_PaperSource_To:
+        return L"The printer paper source has been changed to " + wsCustomParameter + wsWindowsNewLineMarker;
     default:
         return L"Unknown error occured" + wsWindowsNewLineMarker;
 
