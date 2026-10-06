@@ -29,6 +29,8 @@
 constexpr DWORD kMinIntervalDays = 1;
 constexpr DWORD kMaxIntervalDays = 365;
 constexpr DWORD kDefaultIntervalDays = 7;
+// Enough to skip a print that is a year away.
+constexpr DWORD kMaxPostponementDays = 2 * kMaxIntervalDays;
 constexpr DWORD kMaxPaperSource = 32767;          // DEVMODE dmDefaultSource is a short
 constexpr size_t kMaxPrinterNameLength = 256;
 constexpr size_t kMaxImageSourceNameLength = 255; // a file name, as NTFS allows
@@ -41,6 +43,10 @@ struct ServiceSettings
     short paperSource = 0;        // DEVMODE dmDefaultSource; 0 uses the printer default
     bool customImage = false;     // false prints the image installed with the program
     std::wstring imageSourceName; // the file the custom image came from, for display only
+
+    // No scheduled print before this time (FILETIME ticks); 0 if it was never postponed. A
+    // postponement that has ended keeps its end, which lies in the past.
+    uint64_t postponedUntilUtc = 0;
 };
 
 enum class PrintKind
@@ -57,7 +63,8 @@ struct FailureRecord
 
 struct PrintHistory
 {
-    uint64_t lastPrintUtc = 0; // FILETIME ticks; 0 when nothing was printed yet
+    uint64_t lastPrintUtc = 0;       // FILETIME ticks; 0 when nothing was printed yet
+    uint64_t lastMarkedPrintUtc = 0; // when a user said the printer was used otherwise; 0 when never
     FailureRecord lastScheduledFailure;
     FailureRecord lastManualFailure;
 };
@@ -67,8 +74,21 @@ bool IsValidPaperSource(uint64_t paperSource);
 bool IsValidPrinterName(std::wstring_view name);
 bool IsValidImageSourceName(std::wstring_view name);
 
+// 0 removes the postponement; any other time must lie ahead, at most kMaxPostponementDays.
+bool IsValidPostponement(uint64_t untilUtc, uint64_t nowUtc);
+
+// What the schedule counts from: the later of the last print and the time a user marked the
+// printer as printed, or 0 if there is neither. Times in the future (the clock was turned back)
+// are ignored so that printing resumes instead of waiting until then.
+uint64_t LastMaintenanceUtc(const PrintHistory& history, uint64_t nowUtc);
+
+struct ScheduledPrint
+{
+    uint64_t timeUtc = 0;   // FILETIME ticks; at or before now when the print is due
+    bool postponed = false; // the time is the end of a postponement
+};
+
 // When the next scheduled print is due, or nothing if scheduled printing is disabled or no
-// printer is configured. A last print time in the future (the clock was turned back) is
-// ignored so that printing resumes instead of waiting until that time.
-std::optional<uint64_t> NextScheduledPrintUtc(const ServiceSettings& settings, const PrintHistory& history,
+// printer is configured.
+std::optional<ScheduledPrint> NextScheduledPrint(const ServiceSettings& settings, const PrintHistory& history,
     uint64_t nowUtc);

@@ -42,8 +42,8 @@ enum class ManualPrintRequest
 // Runs every print, scheduled or manual, on one thread so that two jobs never overlap.
 // It checks whether a scheduled print is due every 15 minutes, every minute while a due print
 // waits for the printer to become ready or for the problem that made it fail to be fixed, and
-// immediately when a manual print is requested. All waits end as soon as the service stop
-// event is signaled.
+// immediately when a manual print is requested or the schedule changes. All waits end as soon
+// as the service stop event is signaled.
 class PrintWorker
 {
 public:
@@ -60,6 +60,10 @@ public:
 
     // Thread-safe.
     ManualPrintRequest RequestManualPrint();
+    // Call after the settings, the postponement or the mark as printed changed: the schedule is
+    // checked again right away, a due print that failed is tried again without waiting for the
+    // problem to be fixed, and a countdown for a print that is no longer due ends.
+    void OnScheduleChanged();
     PrintState State() const { return m_state.load(); }
     bool IsManualPrintPending() const { return m_manualPrintPending.load(); }
 
@@ -68,7 +72,7 @@ private:
     {
         bool interrupted = false; // the service is stopping
         FailureReason failure = FailureReason::None;
-        bool skipped = false;     // the settings changed during the countdown; nothing was printed
+        bool skipped = false;     // a scheduled print was no longer due before it started; nothing was printed
         bool notReady = false;    // the printer was not ready, so the print was not started at all
         bool idleReport = false;  // with notReady: the printer reported it itself, see Print
         bool waiting = false;     // a scheduled print failed recently and is not tried again yet
@@ -79,11 +83,20 @@ private:
     JobOutcome Print(PrintKind kind);
     JobOutcome WaitForJob(const std::wstring& printerName, DWORD jobId);
 
+    enum class Countdown
+    {
+        Elapsed,
+        NoLongerDue, // postponed, marked as printed or turned off meanwhile
+        Stopping,
+    };
+    Countdown WaitForCountdown();
+
     // Returns false if the service started stopping during the wait.
     bool Wait(DWORD milliseconds) const;
 
     HANDLE m_stopEvent;
     UniqueKernelHandle m_manualPrintRequested;
+    UniqueKernelHandle m_scheduleChanged;
     std::atomic<PrintState> m_state{ PrintState::Idle };
     std::atomic<bool> m_manualPrintPending{ false };
 

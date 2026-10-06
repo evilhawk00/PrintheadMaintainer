@@ -19,6 +19,7 @@
 #include "RequestHandler.h"
 
 #include <Windows.h>
+#include <initializer_list>
 #include <optional>
 #include <string_view>
 
@@ -36,6 +37,8 @@ namespace
     constexpr wchar_t kGetStatus[] = L"GetStatus";
     constexpr wchar_t kApplySettings[] = L"ApplySettings";
     constexpr wchar_t kPrintNow[] = L"PrintNow";
+    constexpr wchar_t kMarkPrinted[] = L"MarkPrinted";
+    constexpr wchar_t kPostpone[] = L"Postpone";
 
     constexpr wchar_t kOk[] = L"OK";
     constexpr wchar_t kUnknownCommand[] = L"UnknownCommand";
@@ -53,6 +56,9 @@ namespace
     constexpr wchar_t kImageWidth[] = L"ImageWidth";
     constexpr wchar_t kImageHeight[] = L"ImageHeight";
     constexpr wchar_t kImageSourceName[] = L"ImageSourceName";
+
+    constexpr wchar_t kClear[] = L"Clear";
+    constexpr wchar_t kUntil[] = L"Until";
 
     constexpr wchar_t kImageDefault[] = L"Default";
     constexpr wchar_t kImageCustom[] = L"Custom";
@@ -99,6 +105,23 @@ namespace
         return response;
     }
 
+    bool HasOnlyFields(const Ipc::Message& request, std::initializer_list<std::wstring_view> known)
+    {
+        for (const auto& field : request.fields)
+        {
+            bool isKnown = false;
+            for (std::wstring_view name : known)
+            {
+                isKnown = isKnown || field.first == name;
+            }
+            if (!isKnown)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
     void AppendChange(std::wstring& summary, const std::wstring& change)
     {
         if (!summary.empty())
@@ -113,6 +136,7 @@ namespace
         const ServiceSettings settings = SettingsStore::LoadSettings();
         const PrintHistory history = SettingsStore::LoadHistory();
         const std::wstring imagePath = settings.customImage ? Paths::CustomImagePath() : Paths::DefaultImagePath();
+        const std::optional<ScheduledPrint> next = NextScheduledPrint(settings, history, CurrentUtcTicks());
 
         Ipc::Message response(kOk);
         response.Add(L"PrintState", PrintStateName(worker.State()));
@@ -126,31 +150,22 @@ namespace
         response.Add(L"ImagePath", imagePath);
         response.Add(L"ImageAvailable", Flag(FileExists(imagePath)));
         response.Add(L"LastPrint", std::to_wstring(history.lastPrintUtc));
+        response.Add(L"LastMarkedPrint", std::to_wstring(history.lastMarkedPrintUtc));
         response.Add(L"LastScheduledFailure", std::to_wstring(history.lastScheduledFailure.timeUtc));
         response.Add(L"LastScheduledFailureReason", FailureReasonName(history.lastScheduledFailure.reason));
         response.Add(L"LastManualFailure", std::to_wstring(history.lastManualFailure.timeUtc));
         response.Add(L"LastManualFailureReason", FailureReasonName(history.lastManualFailure.reason));
-        response.Add(L"NextScheduledPrint",
-            std::to_wstring(NextScheduledPrintUtc(settings, history, CurrentUtcTicks()).value_or(0)));
+        response.Add(L"NextScheduledPrint", std::to_wstring(next ? next->timeUtc : 0));
+        response.Add(L"NextScheduledPrintPostponed", Flag(next && next->postponed));
         return response;
     }
 
-    Ipc::Message ApplySettings(const Ipc::Message& request, const std::wstring& clientName)
+    Ipc::Message ApplySettings(const Ipc::Message& request, const std::wstring& clientName, PrintWorker& worker)
     {
-        static constexpr std::wstring_view kKnownFields[] = {
-            kEnabled, kIntervalDays, kPrinterName, kPaperSource, kImage, kImageWidth, kImageHeight, kImageSourceName,
-        };
-        for (const auto& field : request.fields)
+        if (!HasOnlyFields(request, { kEnabled, kIntervalDays, kPrinterName, kPaperSource, kImage, kImageWidth,
+                                         kImageHeight, kImageSourceName }))
         {
-            bool known = false;
-            for (std::wstring_view name : kKnownFields)
-            {
-                known = known || field.first == name;
-            }
-            if (!known)
-            {
-                return Ipc::Message(Ipc::kResultInvalidRequest);
-            }
+            return Ipc::Message(Ipc::kResultInvalidRequest);
         }
 
         const ServiceSettings current = SettingsStore::LoadSettings();
@@ -263,6 +278,7 @@ namespace
         {
             ::DeleteFileW(Paths::CustomImagePath().c_str());
         }
+        worker.OnScheduleChanged();
 
         std::wstring summary;
         if (updated.enabled != current.enabled)
@@ -311,6 +327,61 @@ namespace
         }
         return Ipc::Message(Ipc::kResultInternalError);
     }
+
+    Ipc::Message MarkPrinted(const Ipc::Message& request, const std::wstring& clientName, PrintWorker& worker)
+    {
+        bool clear = false;
+        if (const std::wstring* value = request.Find(kClear))
+        {
+            const std::optional<bool> flag = ParseFlag(*value);
+            if (!flag)
+            {
+                return InvalidValue(kClear);
+            }
+            clear = *flag;
+        }
+
+        if (!SettingsStore::RecordMarkedPrint(clear ? 0 : CurrentUtcTicks()))
+        {
+            return Ipc::Message(kStorageError);
+        }
+        worker.OnScheduleChanged();
+        ServiceLog::Write(clear ? L"The mark as printed was removed by " + clientName
+                                : L"Marked as printed by " + clientName);
+        return Ipc::Message(kOk);
+    }
+
+    Ipc::Message Postpone(const Ipc::Message& request, const std::wstring& clientName, PrintWorker& worker)
+    {
+        const std::wstring* value = request.Find(kUntil);
+        const std::optional<uint64_t> until = value != nullptr ? ParseDecimal(*value) : std::nullopt;
+        const uint64_t now = CurrentUtcTicks();
+        if (!until || !IsValidPostponement(*until, now))
+        {
+            return InvalidValue(kUntil);
+        }
+
+        // Removing a postponement ends it now rather than forgetting it: like one that runs out,
+        // its end separates the failures before it from those after it.
+        uint64_t stored = *until;
+        if (stored == 0)
+        {
+            stored = SettingsStore::LoadSettings().postponedUntilUtc;
+            if (stored > now)
+            {
+                stored = now;
+            }
+        }
+        if (!SettingsStore::SavePostponement(stored))
+        {
+            return Ipc::Message(kStorageError);
+        }
+        worker.OnScheduleChanged();
+        ServiceLog::Write(*until == 0 ? L"The postponement was removed by " + clientName
+                                      : L"Scheduled printing postponed until " + FormatLocalTime(*until) + L" by " +
+                                            clientName);
+        return Ipc::Message(kOk);
+    }
 }
 
 namespace Ipc
@@ -319,7 +390,16 @@ namespace Ipc
     {
         if (request.name == kApplySettings)
         {
-            return ApplySettings(request, clientName);
+            return ApplySettings(request, clientName, worker);
+        }
+        if (request.name == kMarkPrinted || request.name == kPostpone)
+        {
+            const bool markPrinted = request.name == kMarkPrinted;
+            if (!request.data.empty() || !HasOnlyFields(request, { markPrinted ? kClear : kUntil }))
+            {
+                return Message(kResultInvalidRequest);
+            }
+            return markPrinted ? MarkPrinted(request, clientName, worker) : Postpone(request, clientName, worker);
         }
         if (request.name == kGetStatus || request.name == kPrintNow)
         {

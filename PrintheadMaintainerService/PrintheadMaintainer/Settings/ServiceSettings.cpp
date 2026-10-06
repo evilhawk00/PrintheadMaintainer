@@ -41,16 +41,39 @@ bool IsValidImageSourceName(std::wstring_view name)
     return name.size() <= kMaxImageSourceNameLength && !ContainsControlCharacters(name);
 }
 
-std::optional<uint64_t> NextScheduledPrintUtc(const ServiceSettings& settings, const PrintHistory& history,
+bool IsValidPostponement(uint64_t untilUtc, uint64_t nowUtc)
+{
+    return untilUtc == 0 || (untilUtc > nowUtc && untilUtc - nowUtc <= kMaxPostponementDays * kTicksPerDay);
+}
+
+uint64_t LastMaintenanceUtc(const PrintHistory& history, uint64_t nowUtc)
+{
+    uint64_t last = 0;
+    for (const uint64_t time : { history.lastPrintUtc, history.lastMarkedPrintUtc })
+    {
+        if (time <= nowUtc && time > last)
+        {
+            last = time;
+        }
+    }
+    return last;
+}
+
+std::optional<ScheduledPrint> NextScheduledPrint(const ServiceSettings& settings, const PrintHistory& history,
     uint64_t nowUtc)
 {
     if (!settings.enabled || settings.printerName.empty())
     {
         return std::nullopt;
     }
-    if (history.lastPrintUtc == 0 || history.lastPrintUtc > nowUtc)
+
+    const uint64_t last = LastMaintenanceUtc(history, nowUtc);
+    ScheduledPrint next;
+    next.timeUtc = last == 0 ? nowUtc : last + settings.intervalDays * kTicksPerDay;
+    if (settings.postponedUntilUtc > next.timeUtc)
     {
-        return nowUtc;
+        next.timeUtc = settings.postponedUntilUtc;
+        next.postponed = true;
     }
-    return history.lastPrintUtc + settings.intervalDays * kTicksPerDay;
+    return next;
 }

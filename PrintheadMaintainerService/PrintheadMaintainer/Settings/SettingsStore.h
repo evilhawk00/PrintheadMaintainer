@@ -35,7 +35,13 @@ namespace SettingsStore
     ServiceSettings LoadSettings();
     bool SaveSettings(const ServiceSettings& settings);
 
+    // 0 removes the postponement.
+    bool SavePostponement(uint64_t untilUtc);
+
     PrintHistory LoadHistory();
     bool RecordSuccess(uint64_t timeUtc);
     bool RecordFailure(PrintKind kind, uint64_t timeUtc, FailureReason reason);
+
+    // 0 removes the mark.
+    bool RecordMarkedPrint(uint64_t timeUtc);
 }

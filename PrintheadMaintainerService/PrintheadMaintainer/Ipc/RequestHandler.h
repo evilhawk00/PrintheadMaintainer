@@ -30,8 +30,9 @@ class PrintWorker;
 //   GetStatus              -> OK with PrintState (Idle|Countdown|Printing), ManualPrintPending,
 //                             Enabled, IntervalDays, PrinterName, PaperSource, CustomImage,
 //                             ImageSourceName, ImagePath, ImageAvailable, LastPrint,
-//                             LastScheduledFailure, LastScheduledFailureReason,
-//                             LastManualFailure, LastManualFailureReason, NextScheduledPrint.
+//                             LastMarkedPrint, LastScheduledFailure, LastScheduledFailureReason,
+//                             LastManualFailure, LastManualFailureReason, NextScheduledPrint and
+//                             NextScheduledPrintPostponed (it is the end of a postponement).
 //                             Times are FILETIME ticks in UTC; 0 means none. Flags are 0 or 1.
 //
 //   ApplySettings          -> OK, InvalidValue (with Field), PrinterUnavailable or StorageError.
@@ -42,6 +43,15 @@ class PrintWorker;
 //     Every value is validated before anything is stored.
 //
 //   PrintNow               -> OK (queued), Busy or NotConfigured.
+//
+//   MarkPrinted            -> OK, InvalidValue (with Field) or StorageError. The printer counts
+//                             as printed now, for example because something else was printed
+//                             on it, so the schedule counts from now.
+//     Clear=1              removes the mark instead.
+//
+//   Postpone               -> OK, InvalidValue (with Field) or StorageError.
+//     Until                (required) no scheduled print before this time, at most 730 days
+//                          ahead; 0 ends the postponement now.
 //
 // Any request can also be answered with InvalidRequest, UnknownCommand or InternalError.
 namespace Ipc

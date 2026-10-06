@@ -38,3 +38,21 @@ std::wstring FormatCurrentLocalTime()
         now.wYear, now.wMonth, now.wDay, now.wHour, now.wMinute, now.wSecond);
     return text;
 }
+
+std::wstring FormatLocalTime(uint64_t utcTicks)
+{
+    FILETIME utc{};
+    utc.dwLowDateTime = static_cast<DWORD>(utcTicks);
+    utc.dwHighDateTime = static_cast<DWORD>(utcTicks >> 32);
+    SYSTEMTIME utcTime{};
+    SYSTEMTIME local{};
+    if (!::FileTimeToSystemTime(&utc, &utcTime) || !::SystemTimeToTzSpecificLocalTime(nullptr, &utcTime, &local))
+    {
+        return L"?";
+    }
+
+    wchar_t text[32] = {};
+    std::swprintf(text, sizeof(text) / sizeof(text[0]), L"%04u/%02u/%02u %02u:%02u",
+        local.wYear, local.wMonth, local.wDay, local.wHour, local.wMinute);
+    return text;
+}

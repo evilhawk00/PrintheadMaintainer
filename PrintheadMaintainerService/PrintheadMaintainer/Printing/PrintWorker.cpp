@@ -50,8 +50,8 @@ namespace
     bool IsScheduledPrintDue(const ServiceSettings& settings)
     {
         const uint64_t now = CurrentUtcTicks();
-        const std::optional<uint64_t> next = NextScheduledPrintUtc(settings, SettingsStore::LoadHistory(), now);
-        return next && *next <= now;
+        const std::optional<ScheduledPrint> next = NextScheduledPrint(settings, SettingsStore::LoadHistory(), now);
+        return next && next->timeUtc <= now;
     }
 
     std::wstring ImagePath(const ServiceSettings& settings)
@@ -59,13 +59,13 @@ namespace
         return settings.customImage ? Paths::CustomImagePath() : Paths::DefaultImagePath();
     }
 
-    // Whether a scheduled failure has been recorded since the last print. Like the schedule, it
-    // leaves out a last print in the future, after the clock was turned back.
-    bool IsRecordedFailure(const PrintHistory& history, uint64_t nowUtc)
+    // Whether a scheduled failure has been recorded since the last print (or mark as printed)
+    // and since a postponement ended.
+    bool IsRecordedFailure(const ServiceSettings& settings, const PrintHistory& history, uint64_t nowUtc)
     {
         const FailureRecord& last = history.lastScheduledFailure;
-        const uint64_t lastPrint = history.lastPrintUtc <= nowUtc ? history.lastPrintUtc : 0;
-        return last.timeUtc != 0 && last.timeUtc > lastPrint && last.timeUtc <= nowUtc;
+        return last.timeUtc != 0 && last.timeUtc > LastMaintenanceUtc(history, nowUtc) &&
+            last.timeUtc >= settings.postponedUntilUtc && last.timeUtc <= nowUtc;
     }
 
     // Finds what would prevent printing with these settings before anything is sent to the printer.
@@ -85,7 +85,8 @@ namespace
 
 PrintWorker::PrintWorker(HANDLE stopEvent)
     : m_stopEvent(stopEvent),
-      m_manualPrintRequested(::CreateEventW(nullptr, FALSE, FALSE, nullptr))
+      m_manualPrintRequested(::CreateEventW(nullptr, FALSE, FALSE, nullptr)),
+      m_scheduleChanged(::CreateEventW(nullptr, FALSE, FALSE, nullptr))
 {
 }
 
@@ -96,7 +97,7 @@ PrintWorker::~PrintWorker()
 
 bool PrintWorker::Start()
 {
-    if (!m_manualPrintRequested)
+    if (!m_manualPrintRequested || !m_scheduleChanged)
     {
         return false;
     }
@@ -138,6 +139,11 @@ ManualPrintRequest PrintWorker::RequestManualPrint()
     return ManualPrintRequest::Accepted;
 }
 
+void PrintWorker::OnScheduleChanged()
+{
+    ::SetEvent(m_scheduleChanged.Get());
+}
+
 bool PrintWorker::Wait(DWORD milliseconds) const
 {
     return ::WaitForSingleObject(m_stopEvent, milliseconds) == WAIT_TIMEOUT;
@@ -150,7 +156,7 @@ void PrintWorker::Run()
         return;
     }
 
-    const HANDLE wakeEvents[] = { m_stopEvent, m_manualPrintRequested.Get() };
+    const HANDLE wakeEvents[] = { m_stopEvent, m_manualPrintRequested.Get(), m_scheduleChanged.Get() };
     for (;;)
     {
         const bool manual = m_manualPrintPending.load();
@@ -190,8 +196,14 @@ void PrintWorker::Run()
             m_manualPrintPending.store(false);
         }
 
-        const DWORD woken = ::WaitForMultipleObjects(2, wakeEvents, FALSE, nextCheckMs);
-        if (woken != WAIT_OBJECT_0 + 1 && woken != WAIT_TIMEOUT)
+        const DWORD woken = ::WaitForMultipleObjects(3, wakeEvents, FALSE, nextCheckMs);
+        if (woken == WAIT_OBJECT_0 + 2)
+        {
+            // The user may have fixed the problem by changing the settings, for example the paper
+            // source, so a print that failed is tried again right away.
+            m_retryTick = 0;
+        }
+        else if (woken != WAIT_OBJECT_0 + 1 && woken != WAIT_TIMEOUT)
         {
             return; // stop requested (or the wait failed)
         }
@@ -226,7 +238,7 @@ PrintWorker::JobOutcome PrintWorker::RunPrint(PrintKind kind)
     }
     if (outcome.skipped)
     {
-        ServiceLog::Write(L"Scheduled printing was skipped because the settings were changed during the countdown");
+        ServiceLog::Write(L"Scheduled printing was skipped because it is no longer due");
         return outcome;
     }
     if (outcome.waiting)
@@ -243,13 +255,15 @@ PrintWorker::JobOutcome PrintWorker::RunPrint(PrintKind kind)
     }
 
     // A scheduled failure is recorded, which also shows it in the UI, and logged when it is news:
-    // the first failure since the last print, or a different problem from the recorded one. The
-    // printer is checked every minute while a due print waits, and what it reports can change
-    // briefly, for example while paper is loaded, so another problem found by such a check is
-    // news only when the previous check found it too. The same problem stays recorded with the
-    // time it was first found, and is logged again only when a print was actually attempted.
+    // the first failure since the last print (or mark as printed) or the end of a postponement,
+    // or a different problem from the recorded one. The printer is checked every minute while a
+    // due print waits, and what it reports can change briefly, for example while paper is loaded,
+    // so another problem found by such a check is news only when the previous check found it too.
+    // The same problem stays recorded with the time it was first found, and is logged again only
+    // when a print was actually attempted.
     const PrintHistory history = SettingsStore::LoadHistory();
-    const bool recorded = kind == PrintKind::Scheduled && IsRecordedFailure(history, now);
+    const bool recorded =
+        kind == PrintKind::Scheduled && IsRecordedFailure(SettingsStore::LoadSettings(), history, now);
     const bool changed = outcome.failure != history.lastScheduledFailure.reason &&
         (!outcome.notReady || outcome.failure == previousProblem);
     if (!recorded || changed)
@@ -267,14 +281,20 @@ PrintWorker::JobOutcome PrintWorker::Print(PrintKind kind)
 {
     // The printer is checked before a scheduled print is announced, so that an offline or jammed
     // printer is reported right away instead of after a countdown that cannot print a page, and
-    // again after the countdown.
-    const auto checkPrinter = [](const ServiceSettings& settings) -> std::optional<JobOutcome> {
+    // again after the countdown. Checking a network printer can take a while, and the user may
+    // postpone the print or mark the printer as printed meanwhile; then the print is skipped.
+    const auto checkPrinter = [kind](const ServiceSettings& settings) -> std::optional<JobOutcome> {
         const Printing::PrinterStatus status = CheckReadiness(settings);
         if (status.failure == FailureReason::None)
         {
             return std::nullopt;
         }
         JobOutcome notReady;
+        if (kind == PrintKind::Scheduled && !IsScheduledPrintDue(SettingsStore::LoadSettings()))
+        {
+            notReady.skipped = true;
+            return notReady;
+        }
         notReady.failure = status.failure;
         notReady.notReady = true;
         notReady.idleReport = status.idleReport;
@@ -295,7 +315,8 @@ PrintWorker::JobOutcome PrintWorker::Print(PrintKind kind)
         // again after it reported a problem itself while no document was waiting to print, which
         // means that the problem was fixed. A waiting document, such as the failed one, which was
         // cancelled but can stay queued for a while, can make the printer report a problem that
-        // ends when the document leaves, fixed or not.
+        // ends when the document leaves, fixed or not. A change of the settings or the schedule
+        // ends the wait too (see Run).
         if (::GetTickCount64() < m_retryTick)
         {
             JobOutcome waiting;
@@ -304,20 +325,17 @@ PrintWorker::JobOutcome PrintWorker::Print(PrintKind kind)
         }
 
         m_state.store(PrintState::Countdown);
-        if (!Wait(kCountdownMs))
+        const Countdown countdown = WaitForCountdown();
+        if (countdown != Countdown::Elapsed)
         {
-            return { true, FailureReason::None };
+            JobOutcome cancelled;
+            cancelled.interrupted = countdown == Countdown::Stopping;
+            cancelled.skipped = countdown == Countdown::NoLongerDue;
+            return cancelled;
         }
 
-        // The user may have changed the settings meanwhile, for example turned scheduled
-        // printing off or chosen another printer or image.
+        // The user may have chosen another printer or image meanwhile.
         settings = SettingsStore::LoadSettings();
-        if (!IsScheduledPrintDue(settings))
-        {
-            JobOutcome skipped;
-            skipped.skipped = true;
-            return skipped;
-        }
         if (const std::optional<JobOutcome> notReady = checkPrinter(settings))
         {
             return *notReady;
@@ -332,6 +350,33 @@ PrintWorker::JobOutcome PrintWorker::Print(PrintKind kind)
         return { false, submitted.failure };
     }
     return WaitForJob(settings.printerName, submitted.jobId);
+}
+
+PrintWorker::Countdown PrintWorker::WaitForCountdown()
+{
+    const HANDLE events[] = { m_stopEvent, m_scheduleChanged.Get() };
+    const ULONGLONG deadline = ::GetTickCount64() + kCountdownMs;
+    for (;;)
+    {
+        const ULONGLONG now = ::GetTickCount64();
+        const DWORD remainingMs = now < deadline ? static_cast<DWORD>(deadline - now) : 0;
+        const DWORD woken = ::WaitForMultipleObjects(2, events, FALSE, remainingMs);
+        if (woken != WAIT_TIMEOUT && woken != WAIT_OBJECT_0 + 1)
+        {
+            return Countdown::Stopping; // stop requested (or the wait failed)
+        }
+
+        // The user may have postponed the print, marked the printer as printed or turned
+        // scheduled printing off, during the countdown or right at its end.
+        if (!IsScheduledPrintDue(SettingsStore::LoadSettings()))
+        {
+            return Countdown::NoLongerDue;
+        }
+        if (woken == WAIT_TIMEOUT)
+        {
+            return Countdown::Elapsed;
+        }
+    }
 }
 
 PrintWorker::JobOutcome PrintWorker::WaitForJob(const std::wstring& printerName, DWORD jobId)

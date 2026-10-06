@@ -36,7 +36,9 @@ namespace
     constexpr wchar_t kPaperSource[] = L"PaperSource";
     constexpr wchar_t kCustomImage[] = L"CustomImage";
     constexpr wchar_t kImageSourceName[] = L"ImageSourceName";
+    constexpr wchar_t kPostponedUntil[] = L"PostponedUntil";
     constexpr wchar_t kLastPrintTime[] = L"LastPrintTime";
+    constexpr wchar_t kLastMarkedPrintTime[] = L"LastMarkedPrintTime";
     constexpr wchar_t kLastScheduledFailureTime[] = L"LastScheduledFailureTime";
     constexpr wchar_t kLastScheduledFailureReason[] = L"LastScheduledFailureReason";
     constexpr wchar_t kLastManualFailureTime[] = L"LastManualFailureTime";
@@ -180,6 +182,7 @@ namespace SettingsStore
         {
             settings.imageSourceName = std::move(*value);
         }
+        settings.postponedUntilUtc = ReadQword(key.Get(), kPostponedUntil).value_or(0);
         return settings;
     }
 
@@ -199,7 +202,16 @@ namespace SettingsStore
         written = WriteDword(key.Get(), kPaperSource, static_cast<DWORD>(settings.paperSource)) && written;
         written = WriteDword(key.Get(), kCustomImage, settings.customImage ? 1 : 0) && written;
         written = WriteString(key.Get(), kImageSourceName, settings.imageSourceName) && written;
+        written = WriteQword(key.Get(), kPostponedUntil, settings.postponedUntilUtc) && written;
         return written;
+    }
+
+    bool SavePostponement(uint64_t untilUtc)
+    {
+        std::lock_guard<std::mutex> lock(g_mutex);
+
+        const UniqueRegKey key = OpenKey(true);
+        return key && WriteQword(key.Get(), kPostponedUntil, untilUtc);
     }
 
     PrintHistory LoadHistory()
@@ -214,6 +226,7 @@ namespace SettingsStore
         }
 
         history.lastPrintUtc = ReadQword(key.Get(), kLastPrintTime).value_or(0);
+        history.lastMarkedPrintUtc = ReadQword(key.Get(), kLastMarkedPrintTime).value_or(0);
         history.lastScheduledFailure = ReadFailure(key.Get(), kLastScheduledFailureTime, kLastScheduledFailureReason);
         history.lastManualFailure = ReadFailure(key.Get(), kLastManualFailureTime, kLastManualFailureReason);
         return history;
@@ -243,5 +256,13 @@ namespace SettingsStore
         const bool timeWritten = WriteQword(key.Get(),
             scheduled ? kLastScheduledFailureTime : kLastManualFailureTime, timeUtc);
         return reasonWritten && timeWritten;
+    }
+
+    bool RecordMarkedPrint(uint64_t timeUtc)
+    {
+        std::lock_guard<std::mutex> lock(g_mutex);
+
+        const UniqueRegKey key = OpenKey(true);
+        return key && WriteQword(key.Get(), kLastMarkedPrintTime, timeUtc);
     }
 }

@@ -29,3 +29,6 @@ uint64_t CurrentUtcTicks();
 
 // Current local time as "YYYY/MM/DD HH:MM:SS".
 std::wstring FormatCurrentLocalTime();
+
+// A UTC time as local time, "YYYY/MM/DD HH:MM".
+std::wstring FormatLocalTime(uint64_t utcTicks);
