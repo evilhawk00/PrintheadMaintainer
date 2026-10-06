@@ -12,20 +12,26 @@ permissions:
 
 jobs:
   build:
-    runs-on: windows-2022
+    runs-on: windows-2025
     defaults:
       run:
         shell: pwsh
     steps:
       - uses: actions/checkout@v4
 
-      # The project uses the Visual Studio 2019 toolset (v142), which Visual Studio 2022 on the
-      # runner does not necessarily include, so the current toolset builds the service here.
-      # Building with WiX Toolset v7 requires accepting its Open Source Maintenance Fee EULA; the fee
-      # only applies to revenue-generating use by those with an annual gross revenue of US$10,000 or
-      # more.
+      # The UI is built against .NET Framework 4.7.2, whose targeting pack the Visual Studio 2026
+      # image does not necessarily include.
+      - name: Install the .NET Framework 4.7.2 targeting pack
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.7.2\mscorlib.dll")) {
+            choco install netfx-4.7.2-devpack --yes --no-progress
+          }
+
+      # The image has Visual Studio 2026, whose C++ toolset (v145) builds the service. Building with
+      # WiX Toolset v7 requires accepting its Open Source Maintenance Fee EULA; the fee only applies
+      # to revenue-generating use by those with an annual gross revenue of US$10,000 or more.
       - name: Build
-        run: .\build.ps1 -PlatformToolset v143 -AcceptWixEula
+        run: .\build.ps1 -PlatformToolset v145 -AcceptWixEula
 
       - uses: actions/upload-artifact@v4
         with:

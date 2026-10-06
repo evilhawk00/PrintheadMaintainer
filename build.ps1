@@ -21,7 +21,7 @@
     .\build.ps1 -AcceptWixEula
 
 .EXAMPLE
-    .\build.ps1 -AcceptWixEula -PlatformToolset v143
+    .\build.ps1 -AcceptWixEula -Configuration Debug
 #>
 [CmdletBinding()]
 param(
@@ -71,7 +71,7 @@ if (Test-Path $vswhere) {
     $visualStudios = @(& $vswhere -products '*' -requires Microsoft.Component.MSBuild -sort -property installationPath)
 }
 if ($visualStudios.Count -eq 0) {
-    $problems.Add('Visual Studio 2019 or later, or the Build Tools for Visual Studio, is not installed. Install it with the "Desktop development with C++" and ".NET desktop development" workloads (".NET desktop build tools" for the Build Tools).')
+    $problems.Add('Visual Studio is not installed. Install Visual Studio 2026, or the Build Tools for Visual Studio 2026, with the "Desktop development with C++" and ".NET desktop development" workloads (".NET desktop build tools" for the Build Tools).')
 }
 else {
     $toolsetFolders = 'MSBuild\Microsoft\VC\*\Platforms\x64\PlatformToolsets'
@@ -90,7 +90,7 @@ else {
         $installedToolsets = @($visualStudios |
             ForEach-Object { Get-ChildItem (Join-Path $_ "$toolsetFolders\*") -Directory -ErrorAction SilentlyContinue } |
             Where-Object { $_.Name -match '^v\d+$' } | Select-Object -ExpandProperty Name | Sort-Object -Unique -Descending)
-        $problem = "The C++ toolset $PlatformToolset that builds the service is not installed. Add it with the Visual Studio Installer"
+        $problem = "The C++ toolset $PlatformToolset that builds the service is not installed. Install the Visual Studio version that provides it, with its C++ workload"
         if ($installedToolsets.Count -gt 0) {
             $problem += ", or build with an installed one: -PlatformToolset $($installedToolsets[0])"
         }
