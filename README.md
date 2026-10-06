@@ -21,13 +21,18 @@ Upcoming version (planned v1.1.0.0): Adds optional paper source / printer tray s
 + **Prints a user defined .Bmp image with the printer regularly.**
 	+ This software does not use task scheduler, it is a background service running in the background. It checks the time span between last printing time and current time every 15 minutes. The advantage of not using task scheduler is that if the user does not have his or her computer powered on at the scheduled time, on the next boot it will print a page immediately as fast as possible. And it can be deployed on a 24/7 server without a user logged-in. Printer status checking is also implemented, it has more advantage than using task scheduler with an execute and print command-line printing tool.
 	
-	+ It checks the status of a printer, if the printer failed to print the page, the printing will not be counted as a successful printing. If the printer is offline, out of paper or has another problem before printing starts, it does not print and reports the problem instead. It raises a Windows notification to the user in the following circumstances :
-		+ One minute before the start of scheduled printing.<br/>
+	+ It checks the status of a printer, if the printer failed to print the page, the printing will not be counted as a successful printing. If the printer is offline, out of paper or has another problem before printing starts, it does not print and reports the problem instead. A scheduled print then waits for the printer: it checks the printer every minute and prints as soon as the problem is fixed. Some printers report a problem such as running out of paper only while printing; after such a failed print, it also checks the printer every minute and prints again as soon as the printer, with nothing else to print, has reported a problem and is ready again, or else every 15 minutes. "Print Now" on the home page and on the notification prints right away. While it waits, a problem is logged once instead of every minute; a different problem, for example running out of ink after the paper was refilled, is logged and notified again. It raises a Windows notification to the user in the following circumstances :
+		+ Two minutes before the start of scheduled printing. Its buttons skip this print or postpone it by a day.<br/>
 		  <img width="300" src="https://github.com/evilhawk00/PrintheadMaintainer/blob/main/OtherResources/Screenshots/Notification_Preparing.jpg?raw=true">
 		+ Scheduled printing has failed, with the reason (for example: the printer is offline, the paper is jammed).<br/>
 		  <img width="300" src="https://github.com/evilhawk00/PrintheadMaintainer/blob/main/OtherResources/Screenshots/Notification_Failure.jpg?raw=true">
-		  + Every failed attempt is notified. The notification stays on the screen until it is closed, and as long as the problem is not solved, it is shown again when the user comes back to the computer (unlocks it, or uses it again after a few minutes away) and when the UI starts. It is removed automatically once printing succeeds.
+		  + The notification stays on the screen until it is closed, and as long as the problem is not solved, it is shown again every 15 minutes, when the user comes back to the computer (unlocks it, or uses it again after a few minutes away) and when the UI starts, unless the print is postponed. It is removed automatically once printing succeeds. Its buttons print right away (or open the settings when the image could not be printed) or postpone the print by a day.
 		<br/>
++ **Skip a scheduled print when the printer has been used anyway, or postpone it.**
+	+ "I Already Printed" counts the printer as printed now, for example after printing photos with it, so the next scheduled print comes one printing interval later.
+	+ "Postpone" moves the next print one or three days later, skips it so the following print comes one interval later, or moves it to a day picked on a calendar. "Resume Schedule" removes the postponement.
+	+ The home page shows when the next print is and whether it is postponed, and has these buttons. The tray icon menu has them too, and the notifications have some of them.
+
 + **Choose a specific paper source / printer tray for scheduled prints.**
 	+ Settings now enumerates the printer's available paper sources so maintenance jobs can target a non-default tray.
 
@@ -39,6 +44,7 @@ Upcoming version (planned v1.1.0.0): Adds optional paper source / printer tray s
 		  <img width="100" src="https://github.com/evilhawk00/PrintheadMaintainer/blob/main/OtherResources/Screenshots/Tray_Warning.jpg?raw=true">
 		+ Not functional<br/>
 		  <img width="100" src="https://github.com/evilhawk00/PrintheadMaintainer/blob/main/OtherResources/Screenshots/Tray_Error.jpg?raw=true">
+	+ Its menu prints right away, marks the printer as printed, postpones the next print and resumes the schedule.
 		  
 + **The software is separated in two parts. The system service runs under its own restricted account (NT SERVICE\PrintheadMaintenanceSvc) and the UI runs under the user's account**
 	+ The UI can be closed by right clicking the tray icon and select "exit". Please note closing the UI will not affect the scheduled printing function of this software because the background service is still running in the background. Closing the UI only disables the ability of showing a printing failure notification. The UI is just a bridge to communicate with the background service and display the current status to the user. With this kind of implementation, the software can do the printing job even if the PC is still at the user login screen.
