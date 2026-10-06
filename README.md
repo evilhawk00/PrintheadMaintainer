@@ -68,10 +68,12 @@ For example, this is the use of custom image :
    <img width="600" src="https://github.com/evilhawk00/PrintheadMaintainer/blob/main/OtherResources/Screenshots/PrintNowScreen_CustomBmp.jpg?raw=true">
 
 ## Building
-The [build workflow](.github/workflows/build.yml) builds everything on every push. To build by hand:
-1. Build `PrintheadMaintainerService/PrintheadMaintainer.sln` (Release, x64) with Visual Studio 2019 or later and the C++ workload.
-2. Build `PrintheadMaintainerUI/PrintheadMaintainerUI.sln` (Release).
-3. Build `PrintheadMaintainerInstaller/PrintheadMaintainerInstaller.sln` (Release, x64). It packages the files built in steps 1 and 2 with [WiX Toolset](https://wixtoolset.org/) v7, which NuGet restores during the build. WiX v7 requires accepting its [Open Source Maintenance Fee EULA](https://github.com/wixtoolset/wix/blob/main/OSMFEULA.txt), for example by adding `-p:AcceptEula=wix7` to the msbuild command line; the fee only applies to revenue-generating use by those with an annual gross revenue of US$10,000 or more. Visual Studio needs the HeatWave extension to open the installer project.
+Run `build.cmd -AcceptWixEula`, or `.\build.ps1 -AcceptWixEula` in a PowerShell that allows running scripts. It first checks that everything the build needs is installed and lists whatever is missing: Visual Studio 2019 or later (or the Build Tools for Visual Studio) with the C++ toolset of the service and the .NET desktop build tools, the Windows SDK and the .NET Framework 4.7.2 targeting pack. Then it builds the service, the UI and the installer, and puts the installer in the `artifacts` folder. Its options:
+- `-AcceptWixEula` accepts the [Open Source Maintenance Fee EULA](https://github.com/wixtoolset/wix/blob/main/OSMFEULA.txt) of [WiX Toolset](https://wixtoolset.org/) v7, which builds the installer and does not run without it unless the EULA is accepted for your Windows account (see below); NuGet restores WiX during the build. The fee only applies to revenue-generating use by those with an annual gross revenue of US$10,000 or more.
+- `-PlatformToolset v143` builds the service with another C++ toolset than the project's (v142, from Visual Studio 2019).
+- `-Configuration Debug` makes a debug build.
+
+The [build workflow](.github/workflows/build.yml) runs the same script on every push. In Visual Studio, build `PrintheadMaintainerService/PrintheadMaintainer.sln` (x64) and `PrintheadMaintainerUI/PrintheadMaintainerUI.sln` before `PrintheadMaintainerInstaller/PrintheadMaintainerInstaller.sln` (x64), which packages the files they build. Opening the installer project needs the HeatWave extension, and building it needs the WiX EULA accepted once for your Windows account: `msbuild PrintheadMaintainerInstaller\PrintheadMaintainerInstaller.wixproj -t:AcceptEula -p:EulaId=wix7` in a Developer Command Prompt.
 
 The version of the service, the UI and the installer is set in `Directory.Build.props`.
 

@@ -1,5 +1,5 @@
-# Builds the service, the UI and the installer for every push and pull request. The installer and
-# the program files are kept as an artifact of the run.
+# Builds the service, the UI and the installer with build.ps1 for every push and pull request. The
+# installer is kept as an artifact of the run.
 name: Build
 
 on:
@@ -19,29 +19,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: microsoft/setup-msbuild@v2
-
       # The project uses the Visual Studio 2019 toolset (v142), which Visual Studio 2022 on the
-      # runner does not necessarily include, so the current toolset builds it here.
-      - name: Build the service
-        run: msbuild PrintheadMaintainerService\PrintheadMaintainer.sln -m -p:Configuration=Release -p:Platform=x64 -p:PlatformToolset=v143
-
-      - name: Build the UI
-        run: msbuild PrintheadMaintainerUI\PrintheadMaintainerUI.sln -m -restore -p:Configuration=Release
-
-      # WiX Toolset v7 comes from NuGet. Building with it requires accepting its Open Source
-      # Maintenance Fee EULA; the fee only applies to revenue-generating use by those with an annual
-      # gross revenue of US$10,000 or more.
-      - name: Build the installer
-        run: msbuild PrintheadMaintainerInstaller\PrintheadMaintainerInstaller.sln -m -restore -p:Configuration=Release -p:Platform=x64 -p:AcceptEula=wix7
+      # runner does not necessarily include, so the current toolset builds the service here.
+      # Building with WiX Toolset v7 requires accepting its Open Source Maintenance Fee EULA; the fee
+      # only applies to revenue-generating use by those with an annual gross revenue of US$10,000 or
+      # more.
+      - name: Build
+        run: .\build.ps1 -PlatformToolset v143 -AcceptWixEula
 
       - uses: actions/upload-artifact@v4
         with:
           name: PrintheadMaintainer
           if-no-files-found: error
-          path: |
-            PrintheadMaintainerInstaller/bin/x64/Release/PrintheadMaintainerInstaller.msi
-            PrintheadMaintainerService/x64/Release/PrintheadMaintainSvc.exe
-            PrintheadMaintainerUI/bin/Release/PrintheadMaintainer.exe
-            PrintheadMaintainerUI/bin/Release/Microsoft.Toolkit.Uwp.Notifications.dll
-            PrintheadMaintainerUI/bin/Release/System.ValueTuple.dll
+          path: artifacts/
