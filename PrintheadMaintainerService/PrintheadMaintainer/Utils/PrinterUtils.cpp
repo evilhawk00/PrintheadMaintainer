@@ -209,7 +209,7 @@ int intIfPrinterHasError(const std::wstring& wsPrinterName) {
         return -1;
     }
 
-    if (pPrinterInfo->Status && (PRINTER_STATUS_ERROR |
+    if (pPrinterInfo->Status & (PRINTER_STATUS_ERROR |
         PRINTER_STATUS_PAPER_JAM |
         PRINTER_STATUS_PAPER_OUT |
         PRINTER_STATUS_PAPER_PROBLEM |
