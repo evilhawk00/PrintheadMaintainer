@@ -11,7 +11,7 @@
   <!-- Where the service keeps its settings (Settings/SettingsStore.cpp in the service). -->
   <?define SettingsKey = "SOFTWARE\evilhawk00\Printhead Maintainer" ?>
 
-  <Product Id="*" Name="Printhead Maintainer" Language="1033" Version="1.0.0.1" Manufacturer="evilhawk00" UpgradeCode="{836CF211-F067-43F8-A021-6BB3E007F9AF}">
+  <Product Id="*" Name="Printhead Maintainer" Language="1033" Version="1.1.0.0" Manufacturer="evilhawk00" UpgradeCode="{836CF211-F067-43F8-A021-6BB3E007F9AF}">
     <!-- MSI 5.0 (Windows 7 and later) is needed for PermissionEx with security descriptors. -->
     <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine" InstallPrivileges="elevated" Platform="x64"/>
 
