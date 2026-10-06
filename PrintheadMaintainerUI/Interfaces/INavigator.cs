@@ -25,6 +25,14 @@ namespace PrintheadMaintainerUI.Interfaces
 
         void ShowPrintNow();
 
+        /// <summary>Shows the print page and starts printing, which the page then follows.</summary>
+        void PrintNow();
+
+        /// <summary>A print can be started now, see <see cref="PrintNow"/>.</summary>
+        bool CanPrintNow { get; }
+
+        void ShowPostpone();
+
         /// <summary>Shows the settings as the service has them, dropping unsaved changes.</summary>
         void ShowSettings();
 

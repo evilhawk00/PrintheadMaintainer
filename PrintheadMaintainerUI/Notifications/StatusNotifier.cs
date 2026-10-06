@@ -30,8 +30,9 @@ namespace PrintheadMaintainerUI.Notifications
     /// Shows Windows notifications for the service's status. The computer may be left alone right
     /// after it starts, so a failed scheduled print must still be noticed when the user comes back:
     /// - A failed scheduled print is shown as a reminder that stays on screen until the user closes
-    ///   it, and again when the service reports a different problem. While it is not resolved, it
-    ///   is shown again every 15 minutes, when the UI starts and when the user returns.
+    ///   it, and again when the service reports a different problem. While it is not resolved and
+    ///   the print is due (not postponed), it is shown again every 15 minutes, when the UI starts
+    ///   and when the user returns.
     /// - Each kind of notification replaces the previous one of its kind, so the notification
     ///   center holds only the latest one, and it is removed once a later print succeeds.
     /// Create it on the UI thread.
@@ -98,10 +99,14 @@ namespace PrintheadMaintainerUI.Notifications
 
         private void UpdateScheduledFailure(ServiceStatus status, ServiceStatus previous)
         {
-            // Once scheduled printing is turned off nothing will be retried, so stop reminding.
-            bool unresolved = status.HasUnresolvedScheduledFailure && status.Enabled && status.IsPrinterSelected;
-            _userReturn.IsEnabled = unresolved;
+            // Remind only while the print is due: not once scheduled printing is turned off, since
+            // nothing will be retried, nor while it is postponed. When a postponement ends, a failure
+            // from before it waits until the print has been tried again.
             DateTime now = DateTime.UtcNow;
+            bool beforePostponement = status.IsNextScheduledPrintPostponed &&
+                status.LastScheduledFailure?.TimeUtc < status.NextScheduledPrintUtc;
+            bool unresolved = status.HasUnresolvedScheduledFailure && status.IsScheduledPrintDue(now) && !beforePostponement;
+            _userReturn.IsEnabled = unresolved;
             bool reminderDue = now - _lastReminderUtc >= ReminderInterval || now < _lastReminderUtc; // or the clock was turned back
             if (unresolved && (_showUnresolvedFailure || IsNewer(status.LastScheduledFailure, previous?.LastScheduledFailure) || reminderDue))
             {

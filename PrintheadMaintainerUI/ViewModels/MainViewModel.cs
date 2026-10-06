@@ -31,6 +31,7 @@ namespace PrintheadMaintainerUI.ViewModels
         private readonly StatusMonitor _monitor;
         private readonly HomeViewModel _home;
         private readonly PrintNowViewModel _printNow;
+        private readonly PostponeViewModel _postpone;
         private readonly SettingsViewModel _settings;
         private readonly ChoosePrinterViewModel _choosePrinter;
         private readonly LogsViewModel _logs;
@@ -40,11 +41,12 @@ namespace PrintheadMaintainerUI.ViewModels
         private string _statusTitle = string.Empty;
         private string _footer = string.Empty;
 
-        public MainViewModel(ServiceClient client, StatusMonitor monitor)
+        public MainViewModel(ServiceClient client, StatusMonitor monitor, ScheduleActions actions)
         {
             _monitor = monitor ?? throw new ArgumentNullException(nameof(monitor));
-            _home = new HomeViewModel(this, monitor);
+            _home = new HomeViewModel(this, monitor, actions);
             _printNow = new PrintNowViewModel(this, client, monitor);
+            _postpone = new PostponeViewModel(this, actions, monitor);
             _settings = new SettingsViewModel(this, client, monitor);
             _choosePrinter = new ChoosePrinterViewModel(this);
             _logs = new LogsViewModel(this);
@@ -81,15 +83,33 @@ namespace PrintheadMaintainerUI.ViewModels
             private set => SetProperty(ref _footer, value);
         }
 
+        public bool CanPrintNow => _printNow.PrintNowCommand.CanExecute(null);
+
         public void ShowHome()
         {
             Navigate(_home);
+            _home.Load();
         }
 
         public void ShowPrintNow()
         {
             Navigate(_printNow);
             _printNow.Load();
+        }
+
+        public void ShowPostpone()
+        {
+            Navigate(_postpone);
+            _postpone.Load();
+        }
+
+        public void PrintNow()
+        {
+            ShowPrintNow();
+            if (CanPrintNow)
+            {
+                _printNow.PrintNowCommand.Execute(null);
+            }
         }
 
         public void ShowSettings()

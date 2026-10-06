@@ -37,6 +37,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
             <DataTemplate DataType="{x:Type viewmodels:PrintNowViewModel}">
                 <views:PrintNowView/>
             </DataTemplate>
+            <DataTemplate DataType="{x:Type viewmodels:PostponeViewModel}">
+                <views:PostponeView/>
+            </DataTemplate>
             <DataTemplate DataType="{x:Type viewmodels:SettingsViewModel}">
                 <views:SettingsView/>
             </DataTemplate>

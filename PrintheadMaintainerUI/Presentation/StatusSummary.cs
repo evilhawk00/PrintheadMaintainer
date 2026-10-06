@@ -56,6 +56,8 @@ namespace PrintheadMaintainerUI.Presentation
 
         public string NextScheduledPrint { get; private set; }
 
+        public ValueState NextScheduledPrintState { get; private set; }
+
         public string Interval { get; private set; }
 
         public static StatusSummary Create(ServiceConnection connection, ServiceStatus status, DateTime nowUtc)
@@ -74,6 +76,7 @@ namespace PrintheadMaintainerUI.Presentation
                     LastPrint = Unknown,
                     LastPrintState = ValueState.Warning,
                     NextScheduledPrint = Unknown,
+                    NextScheduledPrintState = ValueState.Warning,
                     Interval = Unknown,
                 };
             }
@@ -88,24 +91,32 @@ namespace PrintheadMaintainerUI.Presentation
             if (!status.NextScheduledPrintUtc.HasValue)
             {
                 summary.NextScheduledPrint = Unknown;
+                summary.NextScheduledPrintState = ValueState.Warning;
+            }
+            else if (status.NextScheduledPrintUtc.Value <= nowUtc)
+            {
+                summary.NextScheduledPrint = "Due now";
+                summary.NextScheduledPrintState = ValueState.OK;
             }
             else
             {
-                summary.NextScheduledPrint = status.NextScheduledPrintUtc.Value <= nowUtc
-                    ? "Due now"
-                    : DisplayText.FormatTime(status.NextScheduledPrintUtc.Value);
+                bool postponed = status.IsNextScheduledPrintPostponed;
+                summary.NextScheduledPrint = DisplayText.FormatTime(status.NextScheduledPrintUtc.Value) +
+                    (postponed ? " (postponed)" : string.Empty);
+                summary.NextScheduledPrintState = postponed ? ValueState.Warning : ValueState.OK;
             }
 
-            if (!status.LastPrintUtc.HasValue)
+            DateTime? lastMaintenance = status.LastMaintenanceUtc;
+            if (!lastMaintenance.HasValue)
             {
                 summary.LastPrint = "Never";
                 summary.LastPrintState = ValueState.Warning;
             }
             else
             {
-                DateTime lastPrint = status.LastPrintUtc.Value;
-                summary.LastPrint = DisplayText.FormatTimeAgo(lastPrint, nowUtc);
-                bool overdue = nowUtc - lastPrint > TimeSpan.FromDays(status.IntervalDays) + OverdueMargin;
+                summary.LastPrint = DisplayText.FormatTimeAgo(lastMaintenance.Value, nowUtc) +
+                    (status.IsMarkedAsPrinted ? " (marked as printed)" : string.Empty);
+                bool overdue = nowUtc - lastMaintenance.Value > TimeSpan.FromDays(status.IntervalDays) + OverdueMargin;
                 summary.LastPrintState = overdue ? ValueState.Error : ValueState.OK;
             }
 

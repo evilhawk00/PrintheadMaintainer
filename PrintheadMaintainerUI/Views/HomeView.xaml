@@ -30,6 +30,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     <UserControl.Resources>
         <Converters:ServiceStateToBackgroundColorConverter x:Key="ServiceStateToBackgroundColorConverter" />
         <Converters:ValueStateToColorConverter x:Key="ValueStateToColorConverter" />
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <Converters:ServiceStateToDrawingImageConverter x:Key="ServiceStateToDrawingImageConverter"
                                 OKIcon="{StaticResource CheckMark_Icon}"
                                 WarningIcon="{StaticResource Alert_Icon}"
@@ -44,9 +45,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
             </LinearGradientBrush>
         </Grid.Background>
         <Grid.RowDefinitions>
-            <RowDefinition Height="9.5*" />
+            <RowDefinition Height="10.5*" />
             <RowDefinition Height="7"/>
-            <RowDefinition Height="7.5*" />
+            <RowDefinition Height="6.5*" />
         </Grid.RowDefinitions>
 
         <DockPanel Grid.Row="0">
@@ -70,6 +71,29 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
                             <TextBlock FontWeight="Normal" FontSize="16" Foreground="#5f6666" TextWrapping="Wrap" Text="Last Print: " DockPanel.Dock="Left"/>
                             <TextBlock FontWeight="Normal" FontSize="16" Text="{Binding LastPrint}" Foreground="{Binding LastPrintState, Converter={StaticResource ValueStateToColorConverter}}" TextWrapping="Wrap"/>
                         </DockPanel>
+                        <DockPanel HorizontalAlignment="Stretch" Margin="0" LastChildFill="True">
+                            <TextBlock FontWeight="Normal" FontSize="16" Foreground="#5f6666" TextWrapping="Wrap" Text="Next Print: " DockPanel.Dock="Left"/>
+                            <TextBlock FontWeight="Normal" FontSize="16" Text="{Binding NextPrint}" Foreground="{Binding NextPrintState, Converter={StaticResource ValueStateToColorConverter}}" TextWrapping="Wrap"/>
+                        </DockPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                            <Button Content="Print Now" FontSize="13" FontWeight="SemiBold" Style="{StaticResource DarkButtonStyle}" Height="28" Width="100" Margin="0,0,8,0" Command="{Binding PrintNowCommand}" Visibility="{Binding IsPrintNowVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            <Button Content="Settings..." FontSize="13" FontWeight="SemiBold" Style="{StaticResource DarkButtonStyle}" Height="28" Width="100" Margin="0,0,8,0" Command="{Binding ShowSettingsCommand}" Visibility="{Binding IsSettingsVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            <Button Content="Postpone..." FontSize="13" FontWeight="SemiBold" Style="{StaticResource LightButtonStyle}" Height="28" Width="100" Margin="0,0,8,0" Command="{Binding ShowPostponeCommand}"/>
+                            <Button Content="I Already Printed" FontSize="13" FontWeight="SemiBold" Style="{StaticResource LightButtonStyle}" Height="28" Width="130" Margin="0,0,8,0" Command="{Binding MarkPrintedCommand}"/>
+                            <Button Content="Resume Schedule" FontSize="13" FontWeight="SemiBold" Style="{StaticResource LightButtonStyle}" Height="28" Width="130" Margin="0,0,8,0" Command="{Binding ResumeScheduleCommand}" Visibility="{Binding IsResumeScheduleVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            <Button Content="Undo Mark" FontSize="13" FontWeight="SemiBold" Style="{StaticResource LightButtonStyle}" Height="28" Width="100" Command="{Binding UndoMarkPrintedCommand}" Visibility="{Binding IsUndoMarkVisible, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                        </StackPanel>
+                        <TextBlock FontSize="13" Foreground="#c71900" Text="{Binding Message}" TextWrapping="Wrap" Margin="0,6,0,0">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Message}" Value="">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
 
                     </StackPanel>
 

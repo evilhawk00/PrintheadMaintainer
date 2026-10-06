@@ -55,6 +55,9 @@ namespace PrintheadMaintainerUI.Models
 
         public DateTime? LastPrintUtc { get; set; }
 
+        /// <summary>When the user last marked the printer as printed; null if never.</summary>
+        public DateTime? LastMarkedPrintUtc { get; set; }
+
         public PrintFailure LastScheduledFailure { get; set; }
 
         public PrintFailure LastManualFailure { get; set; }
@@ -62,19 +65,58 @@ namespace PrintheadMaintainerUI.Models
         /// <summary>Null when scheduled printing is disabled or no printer is selected.</summary>
         public DateTime? NextScheduledPrintUtc { get; set; }
 
+        /// <summary>The next scheduled print waits for the end of a postponement.</summary>
+        public bool IsNextScheduledPrintPostponed { get; set; }
+
         public bool IsPrinterSelected => PrinterName.Length > 0;
+
+        /// <summary>
+        /// What the schedule counts from: the last print, or a later mark as printed. As in the
+        /// service, a time in the future (the clock was turned back) is left out.
+        /// </summary>
+        public DateTime? LastMaintenanceUtc
+        {
+            get
+            {
+                DateTime now = DateTime.UtcNow;
+                DateTime? last = null;
+                foreach (DateTime? time in new[] { LastPrintUtc, LastMarkedPrintUtc })
+                {
+                    if (time.HasValue && time.Value <= now && (!last.HasValue || time.Value > last.Value))
+                    {
+                        last = time;
+                    }
+                }
+                return last;
+            }
+        }
+
+        /// <summary>The schedule counts from a mark as printed rather than from a print.</summary>
+        public bool IsMarkedAsPrinted => LastMaintenanceUtc.HasValue && LastMaintenanceUtc == LastMarkedPrintUtc;
+
+        public bool IsScheduledPrintDue(DateTime nowUtc)
+        {
+            return NextScheduledPrintUtc.HasValue && NextScheduledPrintUtc.Value <= nowUtc;
+        }
+
+        /// <summary>The next scheduled print waits for a postponement that has not ended yet.</summary>
+        public bool IsPostponed(DateTime nowUtc)
+        {
+            return IsNextScheduledPrintPostponed && NextScheduledPrintUtc.HasValue && NextScheduledPrintUtc.Value > nowUtc;
+        }
 
         public bool IsBusy => PrintState != PrintState.Idle || ManualPrintPending;
 
-        /// <summary>The last scheduled print failed and nothing has been printed since.</summary>
+        /// <summary>The last scheduled print failed and nothing has been printed (or marked) since.</summary>
         public bool HasUnresolvedScheduledFailure => IsUnresolved(LastScheduledFailure);
 
-        /// <summary>The last manual print failed and nothing has been printed since.</summary>
+        /// <summary>The last manual print failed and nothing has been printed (or marked) since.</summary>
         public bool HasUnresolvedManualFailure => IsUnresolved(LastManualFailure);
 
         private bool IsUnresolved(PrintFailure failure)
         {
-            return failure != null && (!LastPrintUtc.HasValue || failure.TimeUtc > LastPrintUtc.Value);
+            DateTime? lastMaintenance = LastMaintenanceUtc;
+            return failure != null && (!lastMaintenance.HasValue || failure.TimeUtc > lastMaintenance.Value);
         }
     }
 }

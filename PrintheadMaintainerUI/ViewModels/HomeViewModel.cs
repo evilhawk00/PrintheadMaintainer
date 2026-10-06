@@ -19,9 +19,11 @@
 using PrintheadMaintainerUI.Commands;
 using PrintheadMaintainerUI.Enums;
 using PrintheadMaintainerUI.Interfaces;
+using PrintheadMaintainerUI.Models;
 using PrintheadMaintainerUI.Presentation;
 using PrintheadMaintainerUI.Status;
 using System;
+using System.Threading.Tasks;
 using System.Windows.Input;
 
 namespace PrintheadMaintainerUI.ViewModels
@@ -29,6 +31,8 @@ namespace PrintheadMaintainerUI.ViewModels
     public sealed class HomeViewModel : ViewModelBase
     {
         private readonly StatusMonitor _monitor;
+        private readonly ScheduleActions _actions;
+        private bool _sending;
         private ServiceState _state = ServiceState.Unknown;
         private string _title = string.Empty;
         private string _scheduledPrinting = string.Empty;
@@ -37,14 +41,27 @@ namespace PrintheadMaintainerUI.ViewModels
         private ValueState _problemState;
         private string _lastPrint = string.Empty;
         private ValueState _lastPrintState;
+        private string _nextPrint = string.Empty;
+        private ValueState _nextPrintState;
+        private bool _isPrintNowVisible;
+        private bool _isSettingsVisible;
+        private bool _isResumeScheduleVisible;
+        private bool _isUndoMarkVisible;
+        private string _message = string.Empty;
 
-        public HomeViewModel(INavigator navigator, StatusMonitor monitor)
+        public HomeViewModel(INavigator navigator, StatusMonitor monitor, ScheduleActions actions)
         {
             _monitor = monitor ?? throw new ArgumentNullException(nameof(monitor));
+            _actions = actions ?? throw new ArgumentNullException(nameof(actions));
             ShowPrintNowCommand = new RelayCommand(navigator.ShowPrintNow);
             ShowSettingsCommand = new RelayCommand(navigator.ShowSettings);
             ShowLogsCommand = new RelayCommand(navigator.ShowLogs);
             ShowAboutCommand = new RelayCommand(navigator.ShowAbout);
+            PrintNowCommand = new RelayCommand(navigator.PrintNow, () => navigator.CanPrintNow);
+            ShowPostponeCommand = new RelayCommand(navigator.ShowPostpone, () => _actions.HasNextPrint);
+            MarkPrintedCommand = new RelayCommand(() => Run(_actions.MarkPrintedAsync), () => !_sending && _actions.HasNextPrint);
+            ResumeScheduleCommand = new RelayCommand(() => Run(_actions.ResumeScheduleAsync), () => !_sending);
+            UndoMarkPrintedCommand = new RelayCommand(() => Run(_actions.UndoMarkPrintedAsync), () => !_sending);
 
             monitor.Updated += (sender, e) => Update();
             Update();
@@ -57,6 +74,16 @@ namespace PrintheadMaintainerUI.ViewModels
         public ICommand ShowLogsCommand { get; }
 
         public ICommand ShowAboutCommand { get; }
+
+        public ICommand PrintNowCommand { get; }
+
+        public ICommand ShowPostponeCommand { get; }
+
+        public ICommand MarkPrintedCommand { get; }
+
+        public ICommand ResumeScheduleCommand { get; }
+
+        public ICommand UndoMarkPrintedCommand { get; }
 
         public ServiceState State
         {
@@ -106,9 +133,86 @@ namespace PrintheadMaintainerUI.ViewModels
             private set => SetProperty(ref _lastPrintState, value);
         }
 
+        public string NextPrint
+        {
+            get => _nextPrint;
+            private set => SetProperty(ref _nextPrint, value);
+        }
+
+        public ValueState NextPrintState
+        {
+            get => _nextPrintState;
+            private set => SetProperty(ref _nextPrintState, value);
+        }
+
+        /// <summary>
+        /// While scheduled printing fails, so that a printer that has been fixed prints right away
+        /// instead of when the service tries again.
+        /// </summary>
+        public bool IsPrintNowVisible
+        {
+            get => _isPrintNowVisible;
+            private set => SetProperty(ref _isPrintNowVisible, value);
+        }
+
+        /// <summary>Instead of Print Now when the image could not be printed, which printing again does not fix.</summary>
+        public bool IsSettingsVisible
+        {
+            get => _isSettingsVisible;
+            private set => SetProperty(ref _isSettingsVisible, value);
+        }
+
+        /// <summary>While the next print is postponed.</summary>
+        public bool IsResumeScheduleVisible
+        {
+            get => _isResumeScheduleVisible;
+            private set => SetProperty(ref _isResumeScheduleVisible, value);
+        }
+
+        /// <summary>
+        /// While the schedule counts from a mark as printed, but not while scheduled printing fails:
+        /// it failed after the mark, so removing the mark changes nothing.
+        /// </summary>
+        public bool IsUndoMarkVisible
+        {
+            get => _isUndoMarkVisible;
+            private set => SetProperty(ref _isUndoMarkVisible, value);
+        }
+
+        public string Message
+        {
+            get => _message;
+            private set => SetProperty(ref _message, value);
+        }
+
+        public void Load()
+        {
+            Message = string.Empty;
+        }
+
+        // The page shows the changed schedule right away, so only a failure needs a message.
+        private async void Run(Func<Task<ScheduleChange>> change)
+        {
+            if (_sending)
+            {
+                return;
+            }
+
+            _sending = true;
+            Message = string.Empty;
+            CommandManager.InvalidateRequerySuggested();
+
+            ScheduleChange result = await change();
+            _sending = false;
+            Message = result.Succeeded ? string.Empty : result.Message;
+            CommandManager.InvalidateRequerySuggested();
+        }
+
         private void Update()
         {
-            StatusSummary summary = StatusSummary.Create(_monitor.Connection, _monitor.Status, DateTime.UtcNow);
+            ServiceStatus status = _monitor.Status;
+            DateTime now = DateTime.UtcNow;
+            StatusSummary summary = StatusSummary.Create(_monitor.Connection, status, now);
             State = summary.State;
             Title = summary.Title;
             ScheduledPrinting = summary.ScheduledPrinting;
@@ -117,6 +221,15 @@ namespace PrintheadMaintainerUI.ViewModels
             ProblemState = summary.ProblemState;
             LastPrint = summary.LastPrint;
             LastPrintState = summary.LastPrintState;
+            NextPrint = summary.NextScheduledPrint;
+            NextPrintState = summary.NextScheduledPrintState;
+            bool failing = summary.State == ServiceState.Warning;
+            bool imageFailed = failing && status.LastScheduledFailure?.Reason == FailureReason.ImageUnavailable;
+            IsPrintNowVisible = failing && !imageFailed;
+            IsSettingsVisible = imageFailed;
+            IsResumeScheduleVisible = status != null && status.IsPostponed(now);
+            IsUndoMarkVisible = status != null && status.IsMarkedAsPrinted && !failing;
+            CommandManager.InvalidateRequerySuggested();
         }
     }
 }

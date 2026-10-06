@@ -122,6 +122,49 @@ namespace PrintheadMaintainerUI.NamedPipeClient
             });
         }
 
+        /// <summary>Counts the printer as printed now, so the schedule counts from now; or removes the mark.</summary>
+        public Task<ScheduleChangeResult> MarkPrintedAsync(bool clear)
+        {
+            var request = new ServiceMessage("MarkPrinted");
+            if (clear)
+            {
+                request.Add("Clear", "1");
+            }
+            return ChangeScheduleAsync(request);
+        }
+
+        /// <summary>Prints nothing by schedule before the given time; null removes the postponement.</summary>
+        public Task<ScheduleChangeResult> PostponeAsync(DateTime? untilUtc)
+        {
+            var request = new ServiceMessage("Postpone");
+            long until = untilUtc.HasValue ? untilUtc.Value.ToFileTimeUtc() : 0;
+            request.Add("Until", until.ToString(CultureInfo.InvariantCulture));
+            return ChangeScheduleAsync(request);
+        }
+
+        private static Task<ScheduleChangeResult> ChangeScheduleAsync(ServiceMessage request)
+        {
+            return Task.Run(async () =>
+            {
+                ServiceMessage response = await SendAsync(request, RequestTimeout).ConfigureAwait(false);
+                if (response == null)
+                {
+                    return ScheduleChangeResult.NotConnected;
+                }
+                switch (response.Name)
+                {
+                    case ResultOk:
+                        return ScheduleChangeResult.Changed;
+                    case "InvalidValue":
+                        return ScheduleChangeResult.InvalidValue;
+                    case "StorageError":
+                        return ScheduleChangeResult.StorageError;
+                    default:
+                        return ScheduleChangeResult.Failed;
+                }
+            });
+        }
+
         /// <summary>Returns null if a value cannot be sent (it contains control characters).</summary>
         private static ServiceMessage CreateApplySettingsRequest(SettingsUpdate update)
         {
@@ -202,9 +245,11 @@ namespace PrintheadMaintainerUI.NamedPipeClient
                     ImagePath = Required(response, "ImagePath"),
                     ImageAvailable = ParseFlag(Required(response, "ImageAvailable")),
                     LastPrintUtc = ParseTime(Required(response, "LastPrint")),
+                    LastMarkedPrintUtc = ParseTime(Optional(response, "LastMarkedPrint", "0")),
                     LastScheduledFailure = ParseFailure(response, "LastScheduledFailure"),
                     LastManualFailure = ParseFailure(response, "LastManualFailure"),
                     NextScheduledPrintUtc = ParseTime(Required(response, "NextScheduledPrint")),
+                    IsNextScheduledPrintPostponed = ParseFlag(Optional(response, "NextScheduledPrintPostponed", "0")),
                 };
             }
             catch (FormatException)
@@ -216,6 +261,12 @@ namespace PrintheadMaintainerUI.NamedPipeClient
         private static string Required(ServiceMessage response, string key)
         {
             return response.Get(key) ?? throw new FormatException("The status has no " + key + " field.");
+        }
+
+        /// <summary>For fields that a service older than this program does not send.</summary>
+        private static string Optional(ServiceMessage response, string key, string missing)
+        {
+            return response.Get(key) ?? missing;
         }
 
         private static bool ParseFlag(string text)

@@ -64,7 +64,8 @@ namespace PrintheadMaintainerUI
 
             var client = new ServiceClient();
             var monitor = new StatusMonitor(client);
-            _window = new MainWindow(new MainViewModel(client, monitor));
+            var actions = new ScheduleActions(client, monitor);
+            _window = new MainWindow(new MainViewModel(client, monitor, actions));
             MainWindow = _window;
             _notifier = new StatusNotifier(monitor);
             _notifier.OpenRequested += (sender, args) => _window.ShowFromTray();

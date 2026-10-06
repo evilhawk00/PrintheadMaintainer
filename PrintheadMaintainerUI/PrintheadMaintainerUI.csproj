@@ -94,6 +94,7 @@
     <Compile Include="Models\SettingsUpdate.cs" />
     <Compile Include="NamedPipeClient\ApplySettingsResult.cs" />
     <Compile Include="NamedPipeClient\PrintNowResult.cs" />
+    <Compile Include="NamedPipeClient\ScheduleChangeResult.cs" />
     <Compile Include="NamedPipeClient\ServiceClient.cs" />
     <Compile Include="NamedPipeClient\ServiceMessage.cs" />
     <Compile Include="Notifications\StatusNotifier.cs" />
@@ -102,6 +103,8 @@
     <Compile Include="Presentation\StatusSummary.cs" />
     <Compile Include="Printing\PrinterCatalog.cs" />
     <Compile Include="Printing\PrintImageLoader.cs" />
+    <Compile Include="Status\ScheduleActions.cs" />
+    <Compile Include="Status\ScheduleChange.cs" />
     <Compile Include="Status\ServiceConnection.cs" />
     <Compile Include="Status\StatusMonitor.cs" />
     <Compile Include="ValueConverters\ServiceStateToBackgroundColorConverter.cs" />
@@ -113,6 +116,7 @@
     <Compile Include="ViewModels\HomeViewModel.cs" />
     <Compile Include="ViewModels\LogsViewModel.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />
+    <Compile Include="ViewModels\PostponeViewModel.cs" />
     <Compile Include="ViewModels\PrintNowViewModel.cs" />
     <Compile Include="ViewModels\SettingsViewModel.cs" />
     <Compile Include="ViewModels\ViewModelBase.cs" />
@@ -127,6 +131,9 @@
     </Compile>
     <Compile Include="Views\LogsView.xaml.cs">
       <DependentUpon>LogsView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\PostponeView.xaml.cs">
+      <DependentUpon>PostponeView.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\PrintNowView.xaml.cs">
       <DependentUpon>PrintNowView.xaml</DependentUpon>
@@ -167,6 +174,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Views\LogsView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\PostponeView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
