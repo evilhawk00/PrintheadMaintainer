@@ -172,6 +172,10 @@
     <ClCompile Include="Utils\WstringUtils.cpp" />
     <ClCompile Include="Printing\FailureReason.cpp" />
     <ClCompile Include="Printing\Printer.cpp" />
+    <ClCompile Include="Common\Clock.cpp" />
+    <ClCompile Include="Common\Text.cpp" />
+    <ClCompile Include="Settings\ServiceSettings.cpp" />
+    <ClCompile Include="Settings\SettingsStore.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Logging\Logging.h" />
@@ -195,6 +199,10 @@
     <ClInclude Include="Common\WinHandle.h" />
     <ClInclude Include="Printing\FailureReason.h" />
     <ClInclude Include="Printing\Printer.h" />
+    <ClInclude Include="Common\Clock.h" />
+    <ClInclude Include="Common\Text.h" />
+    <ClInclude Include="Settings\ServiceSettings.h" />
+    <ClInclude Include="Settings\SettingsStore.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="PrintheadMaintainer.rc" />
