@@ -80,6 +80,8 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Commands\RelayCommand.cs" />
+    <Compile Include="Enums\FailureReason.cs" />
+    <Compile Include="Enums\PrintState.cs" />
     <Compile Include="Enums\ServiceState.cs" />
     <Compile Include="Enums\ValueState.cs" />
     <Compile Include="Events\EventArgs.cs" />
@@ -89,8 +91,17 @@
     <Compile Include="GlobalConstants\ServiceConstants.cs" />
     <Compile Include="Interfaces\IPageViewModel.cs" />
     <Compile Include="Mediators\Mediator.cs" />
+    <Compile Include="Models\ImageSelection.cs" />
     <Compile Include="Models\PaperSourceOption.cs" />
+    <Compile Include="Models\PrintFailure.cs" />
+    <Compile Include="Models\PrintImage.cs" />
+    <Compile Include="Models\ServiceStatus.cs" />
+    <Compile Include="Models\SettingsUpdate.cs" />
+    <Compile Include="NamedPipeClient\ApplySettingsResult.cs" />
     <Compile Include="NamedPipeClient\IPCClient.cs" />
+    <Compile Include="NamedPipeClient\PrintNowResult.cs" />
+    <Compile Include="NamedPipeClient\ServiceClient.cs" />
+    <Compile Include="NamedPipeClient\ServiceMessage.cs" />
     <Compile Include="Singletons\PrinterNameSingletons.cs" />
     <Compile Include="Threads\RealtimeStatusUpdater.cs" />
     <Compile Include="Utils\FileSelectorUtils.cs" />
