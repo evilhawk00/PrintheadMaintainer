@@ -36,7 +36,7 @@ namespace PrintheadMaintainerUI.ViewModels
         private readonly LogsViewModel _logs;
         private readonly AboutViewModel _about;
         private ViewModelBase _currentPage;
-        private ServiceState _state = ServiceState.Transforming;
+        private ServiceState _state = ServiceState.Unknown;
         private string _statusTitle = string.Empty;
         private string _footer = string.Empty;
 

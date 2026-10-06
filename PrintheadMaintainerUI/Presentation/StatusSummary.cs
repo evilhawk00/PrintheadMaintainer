@@ -65,7 +65,7 @@ namespace PrintheadMaintainerUI.Presentation
                 bool connecting = connection == ServiceConnection.Connecting;
                 return new StatusSummary
                 {
-                    State = connecting ? ServiceState.Transforming : ServiceState.Error,
+                    State = connecting ? ServiceState.Unknown : ServiceState.Error,
                     Title = connecting ? "Connecting..." : "Service unavailable",
                     Problem = connecting ? "Checking..." : "Cannot connect to the Printhead Maintainer service",
                     ProblemState = connecting ? ValueState.Warning : ValueState.Error,

@@ -29,7 +29,7 @@ namespace PrintheadMaintainerUI.ViewModels
     public sealed class HomeViewModel : ViewModelBase
     {
         private readonly StatusMonitor _monitor;
-        private ServiceState _state = ServiceState.Transforming;
+        private ServiceState _state = ServiceState.Unknown;
         private string _title = string.Empty;
         private string _scheduledPrinting = string.Empty;
         private ValueState _scheduledPrintingState;

@@ -27,25 +27,25 @@ namespace PrintheadMaintainerUI.ValueConverters
     {
         public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
-            ServiceState val = (ServiceState)value;
-            if (val == ServiceState.OK)
+            ServiceState state = (ServiceState)value;
+            if (state == ServiceState.OK)
             {
 
-                return BfGetBitmapFrameByURI("pack://application:,,,/PrintheadMaintainer;component/Resources/Icon_Green.ico");
+                return LoadIcon("pack://application:,,,/PrintheadMaintainer;component/Resources/Icon_Green.ico");
             }
-            else if (val == ServiceState.Warning)
+            else if (state == ServiceState.Warning)
             {
 
-                return BfGetBitmapFrameByURI("pack://application:,,,/PrintheadMaintainer;component/Resources/Icon_Orange.ico");
+                return LoadIcon("pack://application:,,,/PrintheadMaintainer;component/Resources/Icon_Orange.ico");
             }
-            else if (val == ServiceState.Error)
+            else if (state == ServiceState.Error)
             {
 
-                return BfGetBitmapFrameByURI("pack://application:,,,/PrintheadMaintainer;component/Resources/Icon_Red.ico");
+                return LoadIcon("pack://application:,,,/PrintheadMaintainer;component/Resources/Icon_Red.ico");
             }
             else {
-                //ServiceState.Transforming
-                return BfGetBitmapFrameByURI("pack://application:,,,/PrintheadMaintainer;component/Resources/Icon_Blue.ico");
+                // ServiceState.Unknown
+                return LoadIcon("pack://application:,,,/PrintheadMaintainer;component/Resources/Icon_Blue.ico");
             }
         }
 
@@ -54,13 +54,11 @@ namespace PrintheadMaintainerUI.ValueConverters
             throw new NotImplementedException();
         }
 
-        private BitmapFrame BfGetBitmapFrameByURI(string strUri)
+        private static BitmapFrame LoadIcon(string uri)
         {
-            IconBitmapDecoder ibd = new IconBitmapDecoder(
-            new Uri(strUri, UriKind.RelativeOrAbsolute),
-            BitmapCreateOptions.None,
-            BitmapCacheOption.Default);
-            return ibd.Frames[0];
+            var decoder = new IconBitmapDecoder(new Uri(uri, UriKind.RelativeOrAbsolute), BitmapCreateOptions.None,
+                BitmapCacheOption.Default);
+            return decoder.Frames[0];
         }
 
     }

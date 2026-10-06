@@ -27,12 +27,12 @@ namespace PrintheadMaintainerUI.ValueConverters
     {
         public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
-            ServiceState val = (ServiceState)value;
-            if (val == ServiceState.OK)
+            ServiceState state = (ServiceState)value;
+            if (state == ServiceState.OK)
             {
                 return OKIcon;
             }
-            else if (val == ServiceState.Warning)
+            else if (state == ServiceState.Warning)
             {
                 return WarningIcon;
             }

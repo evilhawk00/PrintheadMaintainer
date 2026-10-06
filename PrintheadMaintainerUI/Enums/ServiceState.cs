@@ -18,5 +18,5 @@
 */
 namespace PrintheadMaintainerUI.Enums
 {
-    public enum ServiceState { OK, Warning, Error, Transforming }
+    public enum ServiceState { OK, Warning, Error, Unknown }
 }

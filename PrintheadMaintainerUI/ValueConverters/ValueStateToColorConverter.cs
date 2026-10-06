@@ -28,13 +28,13 @@ namespace PrintheadMaintainerUI.ValueConverters
 
         public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
         {
-            ValueState val = (ValueState)value;
-            if (val == ValueState.OK)
+            ValueState state = (ValueState)value;
+            if (state == ValueState.OK)
             {
                 return Brushes.Green; // ff008000
 
             }
-            else if (val == ValueState.Warning)
+            else if (state == ValueState.Warning)
             {
                 return new SolidColorBrush(Color.FromRgb(255, 128, 0));//#ff8000
             }
