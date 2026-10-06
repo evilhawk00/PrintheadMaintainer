@@ -6,7 +6,8 @@
     <!-- The service and the UI are installed from where they are built, so build them first. -->
     <ServiceDir>$(MSBuildThisFileDirectory)..\PrintheadMaintainerService\x64\$(Configuration)</ServiceDir>
     <UiDir>$(MSBuildThisFileDirectory)..\PrintheadMaintainerUI\bin\$(Configuration)</UiDir>
-    <DefineConstants>ServiceDir=$(ServiceDir);UiDir=$(UiDir)</DefineConstants>
+    <!-- The version comes from Directory.Build.props. -->
+    <DefineConstants>ProductVersion=$(Version);ServiceDir=$(ServiceDir);UiDir=$(UiDir)</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="WixToolset.UI.wixext" Version="7.0.0" />

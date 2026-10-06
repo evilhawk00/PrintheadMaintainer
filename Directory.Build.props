@@ -1,0 +1,9 @@
+<Project>
+  <!-- MSBuild imports this file into every project below this folder, so the service, the UI and the
+       installer all take their version from here. Windows Installer ignores the fourth number when it
+       compares versions, so a release must change one of the first three for the installer to
+       upgrade an installed version. -->
+  <PropertyGroup>
+    <Version>1.1.0.0</Version>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,40 @@
+// The version resource of the service. It is kept out of PrintheadMaintainer.rc, which the Visual
+// Studio resource editor rewrites with plain numbers, because the version comes from
+// Directory.Build.props: the project passes it as PHM_VERSION (1.2.3.4) and PHM_VERSION_COMMAS (1,2,3,4).
+
+#define PHM_STRINGIZE_(x) #x
+#define PHM_STRINGIZE(x) PHM_STRINGIZE_(x)
+
+LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_TRADITIONAL
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION PHM_VERSION_COMMAS
+ PRODUCTVERSION PHM_VERSION_COMMAS
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040404b0"
+        BEGIN
+            VALUE "CompanyName", "evilhawk00"
+            VALUE "FileDescription", "Printhead Maintenance Service"
+            VALUE "FileVersion", PHM_STRINGIZE(PHM_VERSION)
+            VALUE "LegalCopyright", "Copyright (C) 2022 YAN-LIN, CHEN"
+            VALUE "OriginalFilename", "PrintheadMaintainSvc.exe"
+            VALUE "ProductName", "Printhead Maintainer"
+            VALUE "ProductVersion", PHM_STRINGIZE(PHM_VERSION)
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x404, 1200
+    END
+END

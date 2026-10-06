@@ -238,4 +238,16 @@
     <Resource Include="Resources\Icon_Red.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- Gives the program the version in Directory.Build.props. -->
+  <Target Name="GenerateVersionInfo" BeforeTargets="CoreCompile">
+    <PropertyGroup>
+      <VersionInfoFile>$(IntermediateOutputPath)VersionInfo.g.cs</VersionInfoFile>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(VersionInfoFile)" Overwrite="true" WriteOnlyWhenDifferent="true"
+                      Lines="[assembly: System.Reflection.AssemblyVersion(&quot;$(Version)&quot;)];[assembly: System.Reflection.AssemblyFileVersion(&quot;$(Version)&quot;)]" />
+    <ItemGroup>
+      <Compile Include="$(VersionInfoFile)" />
+      <FileWrites Include="$(VersionInfoFile)" />
+    </ItemGroup>
+  </Target>
 </Project>

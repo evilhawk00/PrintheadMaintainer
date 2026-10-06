@@ -73,6 +73,8 @@ The [build workflow](.github/workflows/build.yml) builds everything on every pus
 2. Build `PrintheadMaintainerUI/PrintheadMaintainerUI.sln` (Release).
 3. Build `PrintheadMaintainerInstaller/PrintheadMaintainerInstaller.sln` (Release, x64). It packages the files built in steps 1 and 2 with [WiX Toolset](https://wixtoolset.org/) v7, which NuGet restores during the build. WiX v7 requires accepting its [Open Source Maintenance Fee EULA](https://github.com/wixtoolset/wix/blob/main/OSMFEULA.txt), for example by adding `-p:AcceptEula=wix7` to the msbuild command line; the fee only applies to revenue-generating use by those with an annual gross revenue of US$10,000 or more. Visual Studio needs the HeatWave extension to open the installer project.
 
+The version of the service, the UI and the installer is set in `Directory.Build.props`.
+
 ## Credits of third-party
 [Some vector assets](https://github.com/evilhawk00/PrintheadMaintainer/blob/main/PrintheadMaintainerUI/Assets/VectorIcons.xaml "VectorIcons.xaml") converted and used in this project are made by @UXWing. Thus, these vector assets are licensed under [The UXWing license](https://uxwing.com/license/ "The UXWing license").
 

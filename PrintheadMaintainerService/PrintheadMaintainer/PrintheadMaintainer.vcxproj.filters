@@ -115,4 +115,9 @@
       <Filter>資源檔</Filter>
     </Image>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Version.rc2">
+      <Filter>資源檔</Filter>
+    </None>
+  </ItemGroup>
 </Project>

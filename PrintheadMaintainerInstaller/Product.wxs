@@ -12,7 +12,7 @@
   <?define SettingsKey = "SOFTWARE\evilhawk00\Printhead Maintainer" ?>
 
   <!-- MSI 5.0 (Windows 7 and later) is needed for PermissionEx with security descriptors. -->
-  <Package Name="Printhead Maintainer" Manufacturer="evilhawk00" Version="1.1.0.0" Language="1033"
+  <Package Name="Printhead Maintainer" Manufacturer="evilhawk00" Version="$(var.ProductVersion)" Language="1033"
            UpgradeCode="{836CF211-F067-43F8-A021-6BB3E007F9AF}" InstallerVersion="500" Scope="perMachine">
     <MediaTemplate EmbedCab="yes"/>
 

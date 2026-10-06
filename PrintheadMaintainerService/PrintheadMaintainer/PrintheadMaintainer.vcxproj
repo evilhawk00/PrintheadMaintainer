@@ -153,6 +153,12 @@
       <CETCompat>true</CETCompat>
     </Link>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup>
+    <ResourceCompile>
+      <!-- The version from Directory.Build.props, for Version.rc2. -->
+      <PreprocessorDefinitions>PHM_VERSION=$(Version);PHM_VERSION_COMMAS=$(Version.Replace('.', ','));%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+  </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="PrintheadMaintainer.cpp" />
     <ClCompile Include="Printing\FailureReason.cpp" />
@@ -188,6 +194,9 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="PrintheadMaintainer.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Version.rc2" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Icon_Grey.ico" />
