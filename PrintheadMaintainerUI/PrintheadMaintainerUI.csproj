@@ -102,7 +102,13 @@
     <Compile Include="NamedPipeClient\PrintNowResult.cs" />
     <Compile Include="NamedPipeClient\ServiceClient.cs" />
     <Compile Include="NamedPipeClient\ServiceMessage.cs" />
+    <Compile Include="Notifications\StatusNotifier.cs" />
+    <Compile Include="Notifications\UserReturnDetector.cs" />
+    <Compile Include="Presentation\DisplayText.cs" />
+    <Compile Include="Presentation\StatusSummary.cs" />
     <Compile Include="Singletons\PrinterNameSingletons.cs" />
+    <Compile Include="Status\ServiceConnection.cs" />
+    <Compile Include="Status\StatusMonitor.cs" />
     <Compile Include="Threads\RealtimeStatusUpdater.cs" />
     <Compile Include="Utils\FileSelectorUtils.cs" />
     <Compile Include="Utils\RandomUtils.cs" />
