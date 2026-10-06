@@ -178,6 +178,7 @@
     <ClCompile Include="Settings\SettingsStore.cpp" />
     <ClCompile Include="Common\Paths.cpp" />
     <ClCompile Include="Logging\ServiceLog.cpp" />
+    <ClCompile Include="Printing\PrintWorker.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Logging\Logging.h" />
@@ -207,6 +208,7 @@
     <ClInclude Include="Settings\SettingsStore.h" />
     <ClInclude Include="Common\Paths.h" />
     <ClInclude Include="Logging\ServiceLog.h" />
+    <ClInclude Include="Printing\PrintWorker.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="PrintheadMaintainer.rc" />

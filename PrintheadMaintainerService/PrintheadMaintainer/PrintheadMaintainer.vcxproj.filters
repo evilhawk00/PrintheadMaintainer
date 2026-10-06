@@ -93,6 +93,9 @@
     <ClCompile Include="Logging\ServiceLog.cpp">
       <Filter>來源檔案</Filter>
     </ClCompile>
+    <ClCompile Include="Printing\PrintWorker.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -174,6 +177,9 @@
       <Filter>標頭檔</Filter>
     </ClInclude>
     <ClInclude Include="Logging\ServiceLog.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Printing\PrintWorker.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
   </ItemGroup>
