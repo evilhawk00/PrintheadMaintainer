@@ -17,7 +17,7 @@ jobs:
       run:
         shell: pwsh
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # The UI is built against .NET Framework 4.7.2, whose targeting pack the Visual Studio 2026
       # image does not necessarily include.
@@ -33,7 +33,7 @@ jobs:
       - name: Build
         run: .\build.ps1 -PlatformToolset v145 -AcceptWixEula
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: PrintheadMaintainer
           if-no-files-found: error
