@@ -29,31 +29,19 @@ jobs:
       - name: Build the UI
         run: msbuild PrintheadMaintainerUI\PrintheadMaintainerUI.sln -m -restore -p:Configuration=Release
 
-      - name: Collect the files to install
-        run: |
-          $target = 'PrintheadMaintainerInstaller\InstallationFilesSourceDir'
-          Copy-Item 'PrintheadMaintainerService\x64\Release\PrintheadMaintainSvc.exe' $target
-          Copy-Item 'PrintheadMaintainerUI\bin\Release\PrintheadMaintainer.exe',
-                    'PrintheadMaintainerUI\bin\Release\Microsoft.Toolkit.Uwp.Notifications.dll',
-                    'PrintheadMaintainerUI\bin\Release\System.ValueTuple.dll' $target
-
-      # WiX Toolset 3.14 from its NuGet package, so the build does not depend on what the runner
-      # image has installed.
+      # WiX Toolset v7 comes from NuGet. Building with it requires accepting its Open Source
+      # Maintenance Fee EULA; the fee only applies to revenue-generating use by those with an annual
+      # gross revenue of US$10,000 or more.
       - name: Build the installer
-        run: |
-          $package = Join-Path $env:RUNNER_TEMP 'wix.3.14.1.zip'
-          $wix = Join-Path $env:RUNNER_TEMP 'wix'
-          Invoke-WebRequest 'https://api.nuget.org/v3-flatcontainer/wix/3.14.1/wix.3.14.1.nupkg' -OutFile $package
-          Expand-Archive $package $wix
-          $tools = Join-Path $wix 'tools'
-          msbuild PrintheadMaintainerInstaller\PrintheadMaintainerInstaller.sln -p:Configuration=Release -p:Platform=x64 `
-            "-p:WixToolPath=$tools\" "-p:WixExtDir=$tools\" "-p:WixTargetsPath=$tools\wix.targets" "-p:WixTasksPath=$tools\WixTasks.dll"
+        run: msbuild PrintheadMaintainerInstaller\PrintheadMaintainerInstaller.sln -m -restore -p:Configuration=Release -p:Platform=x64 -p:AcceptEula=wix7
 
       - uses: actions/upload-artifact@v4
         with:
           name: PrintheadMaintainer
           if-no-files-found: error
           path: |
-            PrintheadMaintainerInstaller/bin/Release/PrintheadMaintainerInstaller.msi
-            PrintheadMaintainerInstaller/InstallationFilesSourceDir/*.exe
-            PrintheadMaintainerInstaller/InstallationFilesSourceDir/*.dll
+            PrintheadMaintainerInstaller/bin/x64/Release/PrintheadMaintainerInstaller.msi
+            PrintheadMaintainerService/x64/Release/PrintheadMaintainSvc.exe
+            PrintheadMaintainerUI/bin/Release/PrintheadMaintainer.exe
+            PrintheadMaintainerUI/bin/Release/Microsoft.Toolkit.Uwp.Notifications.dll
+            PrintheadMaintainerUI/bin/Release/System.ValueTuple.dll

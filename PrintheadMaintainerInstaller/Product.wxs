@@ -1,6 +1,6 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
-     xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
 
   <!-- The service runs as the virtual account NT SERVICE\PrintheadMaintenanceSvc. Security descriptors
        refer to that account by its service SID, S-1-5-80- followed by the SHA-1 hash of the upper-case
@@ -11,10 +11,9 @@
   <!-- Where the service keeps its settings (Settings/SettingsStore.cpp in the service). -->
   <?define SettingsKey = "SOFTWARE\evilhawk00\Printhead Maintainer" ?>
 
-  <Product Id="*" Name="Printhead Maintainer" Language="1033" Version="1.1.0.0" Manufacturer="evilhawk00" UpgradeCode="{836CF211-F067-43F8-A021-6BB3E007F9AF}">
-    <!-- MSI 5.0 (Windows 7 and later) is needed for PermissionEx with security descriptors. -->
-    <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine" InstallPrivileges="elevated" Platform="x64"/>
-
+  <!-- MSI 5.0 (Windows 7 and later) is needed for PermissionEx with security descriptors. -->
+  <Package Name="Printhead Maintainer" Manufacturer="evilhawk00" Version="1.1.0.0" Language="1033"
+           UpgradeCode="{836CF211-F067-43F8-A021-6BB3E007F9AF}" InstallerVersion="500" Scope="perMachine">
     <MediaTemplate EmbedCab="yes"/>
 
     <!-- Removes an earlier version, including the 32-bit ones, before this one is installed. The
@@ -35,24 +34,24 @@
     <Property Id="ARPURLINFOABOUT" Value="https://github.com/evilhawk00/PrintheadMaintainer"/>
     <Property Id="ARPURLUPDATEINFO" Value="https://github.com/evilhawk00/PrintheadMaintainer"/>
 
-    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER"/>
     <Icon Id="Icon_Blue.ico" SourceFile="Assets\Icon_Blue.ico"/>
     <Property Id="ARPPRODUCTICON" Value="Icon_Blue.ico"/>
 
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER"/>
     <UI>
-      <UIRef Id="WixUI_InstallDir"/>
-      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchApplication">NOT Installed</Publish>
+      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchApplication" Condition="NOT Installed"/>
     </UI>
 
     <Property Id="WixShellExecTarget" Value="[#PrintheadMaintainer.exe]"/>
-    <CustomAction Id="LaunchApplication" BinaryKey="WixCA" DllEntry="WixShellExec" Impersonate="yes"/>
+    <CustomAction Id="LaunchApplication" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixShellExec" Impersonate="yes"/>
 
     <!-- The service only keeps the privilege to traverse folders. Every other privilege of its
          account is removed, in particular SeImpersonatePrivilege, so that a flaw in the service
          gives an attacker as little as possible. -->
     <SetProperty Id="RestrictServicePrivileges" Before="RestrictServicePrivileges" Sequence="execute"
-                 Value="&quot;[System64Folder]sc.exe&quot; privs $(var.ServiceName) SeChangeNotifyPrivilege">NOT REMOVE~="ALL"</SetProperty>
-    <CustomAction Id="RestrictServicePrivileges" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Impersonate="no" Return="check"/>
+                 Value="&quot;[System64Folder]sc.exe&quot; privs $(var.ServiceName) SeChangeNotifyPrivilege"
+                 Condition="NOT REMOVE~=&quot;ALL&quot;"/>
+    <CustomAction Id="RestrictServicePrivileges" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Execute="deferred" Impersonate="no" Return="check"/>
 
     <!-- The settings and the data folder (the log and the custom image) are kept when the program is
          upgraded and removed when it is uninstalled. The installed folder is looked up through the
@@ -60,30 +59,30 @@
     <Property Id="INSTALLEDFOLDER">
       <ComponentSearch Id="InstalledServiceFolder" Guid="{31D4345A-5EF0-47C9-BB23-25C893E97527}" Type="directory"/>
     </Property>
-    <SetProperty Id="DATAFOLDERTOREMOVE" Before="WixRemoveFoldersEx" Sequence="execute"
-                 Value="[INSTALLEDFOLDER]Data\">INSTALLEDFOLDER AND REMOVE~="ALL" AND NOT UPGRADINGPRODUCTCODE</SetProperty>
+    <SetProperty Id="DATAFOLDERTOREMOVE" Before="Wix4RemoveFoldersEx_$(sys.BUILDARCHSHORT)" Sequence="execute"
+                 Value="[INSTALLEDFOLDER]Data\"
+                 Condition="INSTALLEDFOLDER AND REMOVE~=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE"/>
     <SetProperty Id="DeleteSettings" Before="DeleteSettings" Sequence="execute"
-                 Value="&quot;[System64Folder]reg.exe&quot; delete &quot;HKLM\$(var.SettingsKey)&quot; /f /reg:64">REMOVE~="ALL" AND NOT UPGRADINGPRODUCTCODE</SetProperty>
-    <CustomAction Id="DeleteSettings" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Impersonate="no" Return="ignore"/>
+                 Value="&quot;[System64Folder]reg.exe&quot; delete &quot;HKLM\$(var.SettingsKey)&quot; /f /reg:64"
+                 Condition="REMOVE~=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE"/>
+    <CustomAction Id="DeleteSettings" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Execute="deferred" Impersonate="no" Return="ignore"/>
 
     <InstallExecuteSequence>
-      <Custom Action="RestrictServicePrivileges" After="InstallServices">NOT REMOVE~="ALL"</Custom>
-      <Custom Action="DeleteSettings" After="RemoveRegistryValues">REMOVE~="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
+      <Custom Action="RestrictServicePrivileges" After="InstallServices" Condition="NOT REMOVE~=&quot;ALL&quot;"/>
+      <Custom Action="DeleteSettings" After="RemoveRegistryValues" Condition="REMOVE~=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE"/>
     </InstallExecuteSequence>
-  </Product>
+  </Package>
 
   <Fragment>
-    <Directory Id="TARGETDIR" Name="SourceDir">
-      <Directory Id="ProgramFiles64Folder">
-        <Directory Id="INSTALLFOLDER" Name="Printhead Maintainer">
-          <Directory Id="InstallFolderResources" Name="Resources"/>
-          <Directory Id="DataFolder" Name="Data"/>
-        </Directory>
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Printhead Maintainer">
+        <Directory Id="InstallFolderResources" Name="Resources"/>
+        <Directory Id="DataFolder" Name="Data"/>
       </Directory>
-      <Directory Id="ProgramMenuFolder" Name="Programs">
-        <Directory Id="ProgramMenuSubfolder" Name="Printhead Maintainer"/>
-      </Directory>
-    </Directory>
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ProgramMenuSubfolder" Name="Printhead Maintainer"/>
+    </StandardDirectory>
   </Fragment>
 
   <Fragment>
@@ -96,7 +95,7 @@
         </CreateFolder>
       </Component>
       <Component Id="PrintheadMaintainSvc.exe" Guid="{31D4345A-5EF0-47C9-BB23-25C893E97527}" Directory="INSTALLFOLDER">
-        <File Id="PrintheadMaintainSvc.exe" Source="InstallationFilesSourceDir\PrintheadMaintainSvc.exe" KeyPath="yes" Checksum="yes"/>
+        <File Id="PrintheadMaintainSvc.exe" Source="$(var.ServiceDir)\PrintheadMaintainSvc.exe" KeyPath="yes" Checksum="yes"/>
         <!-- A virtual account has no rights beyond the ones granted to it here. -->
         <ServiceInstall Id="ServiceInstaller" Type="ownProcess" Vital="yes"
                         Name="$(var.ServiceName)" DisplayName="Printhead Maintainer Service"
@@ -108,7 +107,7 @@
         <ServiceControl Id="StartService" Stop="both" Start="install" Remove="uninstall" Name="$(var.ServiceName)" Wait="yes"/>
       </Component>
       <Component Id="PrintheadMaintainer.exe" Guid="{874DF914-646B-4829-9584-155E3C87BAE6}" Directory="INSTALLFOLDER">
-        <File Id="PrintheadMaintainer.exe" Source="InstallationFilesSourceDir\PrintheadMaintainer.exe" KeyPath="yes"/>
+        <File Id="PrintheadMaintainer.exe" Source="$(var.UiDir)\PrintheadMaintainer.exe" KeyPath="yes"/>
         <!-- Starts the tray program at logon. The path is quoted because it can contain spaces. -->
         <RegistryValue Id="TrayAutoStartRegistry" Root="HKLM" Action="write"
                        Key="Software\Microsoft\Windows\CurrentVersion\Run"
@@ -117,10 +116,10 @@
                        Type="string"/>
       </Component>
       <Component Id="System.ValueTuple.dll" Guid="{3B74AF8D-4E54-44C3-B64C-B5F2487341E0}" Directory="INSTALLFOLDER">
-        <File Id="System.ValueTuple.dll" Source="InstallationFilesSourceDir\System.ValueTuple.dll" KeyPath="yes"/>
+        <File Id="System.ValueTuple.dll" Source="$(var.UiDir)\System.ValueTuple.dll" KeyPath="yes"/>
       </Component>
       <Component Id="Microsoft.Toolkit.Uwp.Notifications.dll" Guid="{6FE56D7A-07F9-40A3-909A-05154DEE4074}" Directory="INSTALLFOLDER">
-        <File Id="Microsoft.Toolkit.Uwp.Notifications.dll" Source="InstallationFilesSourceDir\Microsoft.Toolkit.Uwp.Notifications.dll" KeyPath="yes"/>
+        <File Id="Microsoft.Toolkit.Uwp.Notifications.dll" Source="$(var.UiDir)\Microsoft.Toolkit.Uwp.Notifications.dll" KeyPath="yes"/>
       </Component>
       <Component Id="LICENSE.txt" Guid="{699A8650-2AEA-4AB4-A0C4-6C08A9A0FF6D}" Directory="INSTALLFOLDER">
         <File Id="LICENSE.txt" Source="InstallationFilesSourceDir\LICENSE.txt" KeyPath="yes"/>

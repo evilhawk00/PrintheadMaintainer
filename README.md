@@ -71,8 +71,7 @@ For example, this is the use of custom image :
 The [build workflow](.github/workflows/build.yml) builds everything on every push. To build by hand:
 1. Build `PrintheadMaintainerService/PrintheadMaintainer.sln` (Release, x64) with Visual Studio 2019 or later and the C++ workload.
 2. Build `PrintheadMaintainerUI/PrintheadMaintainerUI.sln` (Release).
-3. Copy `PrintheadMaintainSvc.exe`, `PrintheadMaintainer.exe`, `Microsoft.Toolkit.Uwp.Notifications.dll` and `System.ValueTuple.dll` from the build output into `PrintheadMaintainerInstaller/InstallationFilesSourceDir`.
-4. Build `PrintheadMaintainerInstaller/PrintheadMaintainerInstaller.sln` (Release, x64) with WiX Toolset 3.11 or later.
+3. Build `PrintheadMaintainerInstaller/PrintheadMaintainerInstaller.sln` (Release, x64). It packages the files built in steps 1 and 2 with [WiX Toolset](https://wixtoolset.org/) v7, which NuGet restores during the build. WiX v7 requires accepting its [Open Source Maintenance Fee EULA](https://github.com/wixtoolset/wix/blob/main/OSMFEULA.txt), for example by adding `-p:AcceptEula=wix7` to the msbuild command line; the fee only applies to revenue-generating use by those with an annual gross revenue of US$10,000 or more. Visual Studio needs the HeatWave extension to open the installer project.
 
 ## Credits of third-party
 [Some vector assets](https://github.com/evilhawk00/PrintheadMaintainer/blob/main/PrintheadMaintainerUI/Assets/VectorIcons.xaml "VectorIcons.xaml") converted and used in this project are made by @UXWing. Thus, these vector assets are licensed under [The UXWing license](https://uxwing.com/license/ "The UXWing license").
