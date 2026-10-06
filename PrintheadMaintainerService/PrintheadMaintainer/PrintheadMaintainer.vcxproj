@@ -179,6 +179,10 @@
     <ClCompile Include="Common\Paths.cpp" />
     <ClCompile Include="Logging\ServiceLog.cpp" />
     <ClCompile Include="Printing\PrintWorker.cpp" />
+    <ClCompile Include="Ipc\Message.cpp" />
+    <ClCompile Include="Ipc\PipeServer.cpp" />
+    <ClCompile Include="Ipc\RequestHandler.cpp" />
+    <ClCompile Include="Printing\PrintImage.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Logging\Logging.h" />
@@ -209,6 +213,10 @@
     <ClInclude Include="Common\Paths.h" />
     <ClInclude Include="Logging\ServiceLog.h" />
     <ClInclude Include="Printing\PrintWorker.h" />
+    <ClInclude Include="Ipc\Message.h" />
+    <ClInclude Include="Ipc\PipeServer.h" />
+    <ClInclude Include="Ipc\RequestHandler.h" />
+    <ClInclude Include="Printing\PrintImage.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="PrintheadMaintainer.rc" />

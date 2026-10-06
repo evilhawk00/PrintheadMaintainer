@@ -19,12 +19,20 @@
 #pragma once
 
 #include <Windows.h>
+#include <optional>
 #include <string>
 
 #include "FailureReason.h"
 
 namespace Printing
 {
+    // Looks the name up among the printers the service can use: local printers and printer
+    // connections installed for all users (connections a user added only for their own account
+    // are not visible to the service). Returns the name as the spooler spells it, or nothing.
+    // Only names found here are accepted from the UI, so that a user cannot make the service open
+    // a printer on another computer (\\host\printer), which would sign in to that host.
+    std::optional<std::wstring> FindInstalledPrinter(const std::wstring& printerName);
+
     // Returns the first problem reported by the printer itself or by a job it is printing,
     // or FailureReason::None when nothing prevents printing.
     FailureReason CheckPrinter(const std::wstring& printerName);

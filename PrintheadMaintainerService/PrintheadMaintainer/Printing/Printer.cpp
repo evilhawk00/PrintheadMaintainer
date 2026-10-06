@@ -202,6 +202,31 @@ namespace
 
 namespace Printing
 {
+    std::optional<std::wstring> FindInstalledPrinter(const std::wstring& printerName)
+    {
+        std::vector<BYTE> buffer;
+        DWORD count = 0;
+        if (QueryIntoBuffer(buffer, [&](BYTE* data, DWORD size, DWORD* needed) {
+                return ::EnumPrintersW(PRINTER_ENUM_LOCAL | PRINTER_ENUM_CONNECTIONS, nullptr, 4, data, size, needed,
+                    &count);
+            }) != ERROR_SUCCESS)
+        {
+            return std::nullopt;
+        }
+
+        const auto* printers = reinterpret_cast<const PRINTER_INFO_4W*>(buffer.data());
+        for (DWORD i = 0; i < count; ++i)
+        {
+            // Printer names are not case-sensitive.
+            if (printers[i].pPrinterName != nullptr &&
+                ::CompareStringOrdinal(printers[i].pPrinterName, -1, printerName.c_str(), -1, TRUE) == CSTR_EQUAL)
+            {
+                return std::wstring(printers[i].pPrinterName);
+            }
+        }
+        return std::nullopt;
+    }
+
     FailureReason CheckPrinter(const std::wstring& printerName)
     {
         UniquePrinter printer = OpenPrinterByName(printerName);

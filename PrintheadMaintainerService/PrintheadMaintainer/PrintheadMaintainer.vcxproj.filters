@@ -96,6 +96,18 @@
     <ClCompile Include="Printing\PrintWorker.cpp">
       <Filter>來源檔案</Filter>
     </ClCompile>
+    <ClCompile Include="Ipc\Message.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
+    <ClCompile Include="Ipc\PipeServer.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
+    <ClCompile Include="Ipc\RequestHandler.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
+    <ClCompile Include="Printing\PrintImage.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -180,6 +192,18 @@
       <Filter>標頭檔</Filter>
     </ClInclude>
     <ClInclude Include="Printing\PrintWorker.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Ipc\Message.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Ipc\PipeServer.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Ipc\RequestHandler.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Printing\PrintImage.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
   </ItemGroup>
