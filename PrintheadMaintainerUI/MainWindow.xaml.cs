@@ -68,6 +68,16 @@ namespace PrintheadMaintainerUI
             ShowFromTray();
         }
 
+        /// <summary>
+        /// Shows the window with the settings page, which shows the settings as the service has
+        /// them: unsaved changes are dropped.
+        /// </summary>
+        public void ShowSettings()
+        {
+            _viewModel.ShowSettings();
+            ShowFromTray();
+        }
+
         /// <summary>Ends the program.</summary>
         public void Exit()
         {

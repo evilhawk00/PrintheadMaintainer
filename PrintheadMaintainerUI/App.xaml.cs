@@ -69,15 +69,18 @@ namespace PrintheadMaintainerUI
             var viewModel = new MainViewModel(client, monitor, actions);
             _window = new MainWindow(viewModel);
             MainWindow = _window;
-            _notifier = new StatusNotifier(monitor);
+            _notifier = new StatusNotifier(monitor, actions);
             _notifier.OpenRequested += (sender, args) => _window.ShowFromTray();
+            _notifier.PrintNowRequested += (sender, args) => _window.PrintNow();
+            _notifier.SettingsRequested += (sender, args) => _window.ShowSettings();
             _trayIcon = new TrayIcon(_window, viewModel, actions, _notifier);
 
             _showWindowWait = ThreadPool.RegisterWaitForSingleObject(_showWindowEvent,
                 (state, timedOut) => Dispatcher.BeginInvoke(new Action(() => _window.ShowFromTray())),
                 null, Timeout.Infinite, false);
 
-            if (!e.Args.Contains(SilentArgument))
+            // A start by a click on a notification leaves the window to the click.
+            if (!e.Args.Contains(SilentArgument) && !StatusNotifier.WasStartedByNotification())
             {
                 _window.ShowFromTray();
             }

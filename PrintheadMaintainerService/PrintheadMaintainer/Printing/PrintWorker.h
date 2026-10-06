@@ -28,7 +28,7 @@
 enum class PrintState
 {
     Idle,
-    Countdown, // a scheduled print starts in about a minute
+    Countdown, // a scheduled print starts in about two minutes
     Printing,
 };
 

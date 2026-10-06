@@ -26,9 +26,10 @@ using System.Threading.Tasks;
 namespace PrintheadMaintainerUI.Status
 {
     /// <summary>
-    /// Changes when the next scheduled print happens, for the home page, the postpone page and the
-    /// tray menu. Every change is worked out from the service's status at that moment, so that
-    /// changes made in quick succession add up, and the status the UI shows is refreshed after it.
+    /// Changes when the next scheduled print happens, for the home page, the postpone page, the
+    /// tray menu and the notifications. Every change is worked out from the service's status at
+    /// that moment, so that changes made in quick succession add up, and the status the UI shows
+    /// is refreshed after it.
     /// </summary>
     public sealed class ScheduleActions
     {

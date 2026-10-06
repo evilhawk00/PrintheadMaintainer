@@ -34,7 +34,7 @@ namespace
     constexpr DWORD kStartupDelayMs = 15 * 1000;       // let the spooler settle after boot
     constexpr DWORD kCheckIntervalMs = 15 * 60 * 1000; // how often a scheduled print is checked
     constexpr DWORD kNotReadyIntervalMs = 60 * 1000;   // the same while a due print waits for the printer
-    constexpr DWORD kCountdownMs = 60 * 1000;          // the UI warns the user during this period
+    constexpr DWORD kCountdownMs = 2 * 60 * 1000;      // the UI warns the user during this period
     constexpr DWORD kFirstJobCheckDelayMs = 60 * 1000; // time the printer gets before the first check
     constexpr int kJobPollCount = 12;                  // then poll for up to two more minutes
     constexpr DWORD kJobPollIntervalMs = 10 * 1000;
