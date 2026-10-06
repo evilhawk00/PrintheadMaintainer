@@ -35,7 +35,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
         <DockPanel Grid.Row="0" HorizontalAlignment="Stretch"  LastChildFill="True" Margin="0,0,0,0" VerticalAlignment="Stretch">
-            <Button VerticalAlignment="Stretch" HorizontalAlignment="Left" Height="47" Width="47" Command="{Binding SwitchToHomeView}" Style="{StaticResource MinimizeStyle}">
+            <Button VerticalAlignment="Stretch" HorizontalAlignment="Left" Height="47" Width="47" Command="{Binding BackCommand}" Style="{StaticResource MinimizeStyle}">
                 <Image Source="{StaticResource BackArrow_Icon}" Height="18" Width="18"/>
 
             </Button>
@@ -84,7 +84,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
                 <TextBlock Grid.Column="0" FontSize="18.5" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0" Grid.Row="0" TextWrapping="Wrap" Text="Version" VerticalAlignment="Center"/>
                 <TextBlock Grid.Column="0" FontSize="18.5" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0" Grid.Row="1" TextWrapping="Wrap" Text="Developer" VerticalAlignment="Center" RenderTransformOrigin="-0.021,-0.577"/>
-                <TextBlock Grid.Column="1" FontSize="18.5" FontWeight="SemiBold" HorizontalAlignment="Center"  Height="auto" Margin="0" Grid.Row="0" TextWrapping="Wrap" Text="1.0.0.1" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" FontSize="18.5" FontWeight="SemiBold" HorizontalAlignment="Center"  Height="auto" Margin="0" Grid.Row="0" TextWrapping="Wrap" Text="{Binding Version}" VerticalAlignment="Center" />
 
 
 
@@ -109,7 +109,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
                 <TextBlock Grid.Column="0" Grid.Row="0" FontSize="18.5" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="top" Margin="0" TextWrapping="Wrap" Text="Github Project Page"/>
                 <TextBlock Grid.Column="0" Grid.Row="1" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Left" VerticalAlignment="top" Margin="10,0,0,0" TextWrapping="Wrap">
-                    <Hyperlink TextDecorations="" NavigateUri="https://github.com/evilhawk00/PrintheadMaintainer" Command="{Binding CmdOpenGithubProjectPage}">https://github.com/evilhawk00/PrintheadMaintainer</Hyperlink>
+                    <Hyperlink TextDecorations="" NavigateUri="https://github.com/evilhawk00/PrintheadMaintainer" Command="{Binding OpenProjectPageCommand}">https://github.com/evilhawk00/PrintheadMaintainer</Hyperlink>
                     
                 </TextBlock>
                 <Image Grid.Column="0" Grid.Row="2" HorizontalAlignment="Left" Height="Auto" Margin="10,0,0,0"  VerticalAlignment="Stretch" Width="Auto" Source="{StaticResource GithubLogo_Icon}"/>

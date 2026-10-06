@@ -16,267 +16,232 @@
 * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 * 
 */
-using Microsoft.Win32;
 using PrintheadMaintainerUI.Commands;
-using PrintheadMaintainerUI.GlobalConstants;
 using PrintheadMaintainerUI.Interfaces;
-using PrintheadMaintainerUI.Mediators;
+using PrintheadMaintainerUI.Models;
 using PrintheadMaintainerUI.NamedPipeClient;
-using PrintheadMaintainerUI.Utils;
+using PrintheadMaintainerUI.Presentation;
+using PrintheadMaintainerUI.Status;
 using System;
 using System.IO;
-using System.Threading;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
 
 namespace PrintheadMaintainerUI.ViewModels
 {
-    public class PrintNowViewModel : ViewModelBase, IPageViewModel
+    public sealed class PrintNowViewModel : ViewModelBase
     {
-        private ICommand _switchToHomeView;
+        private const int PreviewDecodeWidth = 300;
 
+        private readonly ServiceClient _client;
+        private readonly StatusMonitor _monitor;
+        private bool _isShown;
+        private bool _sending;
+        private string _outcome = string.Empty;
 
-        private string _strSettingsImagePath;
-        private string _strPrinterName;
+        // The status from before a print request the service accepted, used to tell the request's
+        // outcome; null when no request is waiting for its outcome.
+        private ServiceStatus _statusBeforeRequest;
 
-        private BitmapImage _bmPreviewBitmap;
+        private string _previewPath;
+        private int _previewVersion;
+        private BitmapSource _preview;
+        private string _printerName = string.Empty;
+        private string _imageName = string.Empty;
+        private string _message = string.Empty;
 
-        private string _strSendPrintCommandResult;
-        private bool bPrinterValueAvailable = false;
-        private bool bBmpValueAvailable = false;
-
-        private Stream sStream;
-
-        //LOCKS
-        private bool bSendPrintCommand_LOCK = false;
-
-        
-        public ICommand SwitchToHomeView
+        public PrintNowViewModel(INavigator navigator, ServiceClient client, StatusMonitor monitor)
         {
-            get
+            _client = client ?? throw new ArgumentNullException(nameof(client));
+            _monitor = monitor ?? throw new ArgumentNullException(nameof(monitor));
+            BackCommand = new RelayCommand(navigator.ShowHome);
+            PrintNowCommand = new RelayCommand(PrintNow, CanPrintNow);
+            monitor.Updated += (sender, e) => Update();
+        }
+
+        public ICommand BackCommand { get; }
+
+        public ICommand PrintNowCommand { get; }
+
+        public BitmapSource Preview
+        {
+            get => _preview;
+            private set => SetProperty(ref _preview, value);
+        }
+
+        public string PrinterName
+        {
+            get => _printerName;
+            private set => SetProperty(ref _printerName, value);
+        }
+
+        public string ImageName
+        {
+            get => _imageName;
+            private set => SetProperty(ref _imageName, value);
+        }
+
+        public string Message
+        {
+            get => _message;
+            private set => SetProperty(ref _message, value);
+        }
+
+        public void Load()
+        {
+            _isShown = true;
+            if (_statusBeforeRequest == null)
             {
-                return _switchToHomeView ?? (_switchToHomeView = new RelayCommand(x =>
-                {
-                    Mediator.Notify("SwitchToHome", "");
-                }));
+                _outcome = string.Empty;
             }
+            _previewPath = null;
+            Update();
         }
 
-        public ICommand CmdPrintNow
+        /// <summary>Called when another page is shown; frees the preview image.</summary>
+        public void Unload()
         {
+            _isShown = false;
+            _previewPath = null;
+            _previewVersion++;
+            Preview = null;
+        }
 
-            get
+        private bool CanPrintNow()
+        {
+            ServiceStatus status = _monitor.Status;
+            return !_sending && _statusBeforeRequest == null && status != null && status.IsPrinterSelected &&
+                status.ImageAvailable && !status.ManualPrintPending;
+        }
+
+        private async void PrintNow()
+        {
+            if (!CanPrintNow())
             {
-                //send value to server
-                return new RelayCommand(x =>
-                {
-                    VoidOnClickPrintNowBtn();
-                }, x =>
-                {
-                    return BIsEnabled_BtnPrintNow();
-                });
-            }
-
-        }
-
-        private bool BIsEnabled_BtnPrintNow()
-        {
-            if (!bSendPrintCommand_LOCK)
-            {
-                //lock is not locked
-                if (bPrinterValueAvailable && bBmpValueAvailable)
-                {
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            else {
-                //locked
-                return false;    
-            }
-        }
-
-        public BitmapImage BmPreviewBitmap 
-        {   
-            get { return _bmPreviewBitmap; 
-            } 
-            set { 
-                _bmPreviewBitmap = value; 
-                OnPropertyChanged(nameof(BmPreviewBitmap)); 
-            } 
-        }
-
-        public string StrPrinterName
-        {
-            get {
-                return _strPrinterName;
-            }
-            set {
-                _strPrinterName = value;
-                OnPropertyChanged(nameof(StrPrinterName));
-            }
-            
-        }
-
-        public string StrBmpPath
-        {
-            get {
-                return _strSettingsImagePath;
-            }
-            set {
-                _strSettingsImagePath = value;
-                OnPropertyChanged(nameof(StrBmpPath));
-            }
-        }
-
-        public string StrSendPrintCommandResult
-        {
-            get
-            {
-                return _strSendPrintCommandResult;
-            }
-            set
-            {
-                _strSendPrintCommandResult = value;
-                OnPropertyChanged(nameof(StrSendPrintCommandResult));
-            }
-        
-        }
-
-        public PrintNowViewModel() {
-
-            VoidUpdateUI_PreviewAndPrinterAndImage();
-            Mediator.Subscribe("FreeImgPreview", Callback_FreeImageView);
-
-        }
-
-        public void VoidRefreshView()
-        {
-
-            VoidUpdateUI_PreviewAndPrinterAndImage();
-
-        }
-
-        private void VoidUpdateUI_PreviewAndPrinterAndImage()
-        {
-
-            RegistryKey rkHandle = RegistryUtils.RkOpenRegistyHandle(false);
-            if (rkHandle == null)
-            {
-                //at this time may be the first start so the registry is still not created
-                StrBmpPath = "Target image hasn't been appointed";
-                StrPrinterName = "Target Printer hasn't been appointed";
                 return;
             }
 
-            string strResultBmpPath = RegistryUtils.StrRegistryReadSingleLineString(rkHandle, RegistryConstants.strRegistryValue_BmpPath);
-            if (strResultBmpPath != null && !strResultBmpPath.Equals(""))
+            ServiceStatus before = _monitor.Status;
+            _sending = true;
+            _outcome = string.Empty;
+            Update();
+
+            PrintNowResult result = await _client.PrintNowAsync();
+            _sending = false;
+            switch (result)
             {
-                StrBmpPath = strResultBmpPath;
-                bBmpValueAvailable = true;
-
-                try
-                {
-                    DisposeMediaStream();
-
-                    var bitmap = new BitmapImage();
-                    sStream = File.OpenRead(StrBmpPath);
-
-                    bitmap.BeginInit();
-                    bitmap.CacheOption = BitmapCacheOption.None;
-                    bitmap.StreamSource = sStream;
-                    bitmap.EndInit();
-
-                    bitmap.Freeze();
-                    BmPreviewBitmap = bitmap;
-
-                }
-                catch (Exception)
-                {
-
-                }
+                case PrintNowResult.Accepted:
+                    _statusBeforeRequest = before;
+                    _monitor.RefreshNow();
+                    break;
+                case PrintNowResult.Busy:
+                    _outcome = "A print is already in progress.";
+                    break;
+                case PrintNowResult.NotConfigured:
+                    _outcome = "Select a printer in Settings first.";
+                    break;
+                case PrintNowResult.NotConnected:
+                    _outcome = "Cannot connect to the Printhead Maintainer service.";
+                    break;
+                default:
+                    _outcome = "The service could not start printing.";
+                    break;
             }
-            else
-            {
-                StrBmpPath = "Target image hasn't been appointed";
-                
-            }
-
-            string strResultPrinterName = RegistryUtils.StrRegistryReadSingleLineString(rkHandle, RegistryConstants.strRegistryValue_PrinterName);
-            if (strResultPrinterName != null && !strResultPrinterName.Equals(""))
-            {
-                StrPrinterName = strResultPrinterName;
-                bPrinterValueAvailable = true;
-                
-            }
-            else
-            {
-                StrPrinterName = "Target Printer hasn't been appointed";
-                
-            }
+            Update();
         }
 
-        private void VoidOnClickPrintNowBtn() {
-
-            bSendPrintCommand_LOCK = true;
-
-            StrSendPrintCommandResult = "Sending printing command to the service, please wait...";
-            //encode msg
-            string strRequestID = RandomUtils.StrGenerateRandomHexadecimalString(8);
-            string strFinalMsg = IPCClient.StrMessageEncoder(strRequestID, NamedPipeConstants.JobFlag_PrintNow, null);
-            _ = IPCClient.AsyncSendMsgToServerAndDecodeResponse(strRequestID, strFinalMsg, VoidOnClickPrintNowBtn_Callback);
-        }
-
-        private void VoidOnClickPrintNowBtn_Callback(int intResult)
+        private void Update()
         {
-
-            if (intResult == NamedPipeConstants.intServerResult_SUCCESS)
+            ServiceStatus status = _monitor.Status;
+            if (status == null)
             {
-                //UWPNotificationUtils.VoidShowUWPNotification("yesyesyes", "!!!");
-                StrSendPrintCommandResult = "Printing command sent to printer successfully.";
+                PrinterName = "Not connected to the service";
+                ImageName = string.Empty;
             }
-            else {
-                //UWPNotificationUtils.VoidShowUWPNotification("nonono", "nonono");
-                StrSendPrintCommandResult = "Failed to send printing command to printer";
+            else
+            {
+                PrinterName = status.IsPrinterSelected ? status.PrinterName : "No printer selected";
+                ImageName = status.CustomImage ? status.ImageSourceName : "Default image";
+
+                if (_statusBeforeRequest != null && !status.ManualPrintPending)
+                {
+                    _outcome = DescribeOutcome(_statusBeforeRequest, status);
+                    _statusBeforeRequest = null;
+                }
+                if (_isShown && _previewPath == null && status.ImageAvailable)
+                {
+                    LoadPreview(status.ImagePath);
+                }
             }
-            
-            bSendPrintCommand_LOCK = false;
-            //now its unlocked, we re-evaluate canexecuted again
+
+            if (_sending)
+            {
+                Message = "Sending the print request...";
+            }
+            else if (_statusBeforeRequest != null)
+            {
+                Message = "Printing... This can take a few minutes.";
+            }
+            else
+            {
+                Message = _outcome;
+            }
             CommandManager.InvalidateRequerySuggested();
-
-
-            //make this text only display for 5 sec
-            Task.Factory.StartNew(() =>
-            {
-                Thread.Sleep(5000);
-                StrSendPrintCommandResult = "";
-
-            });
-            
-            
         }
 
-        private void DisposeMediaStream()
+        private static string DescribeOutcome(ServiceStatus before, ServiceStatus after)
         {
-            if (sStream != null)
+            if (after.LastPrintUtc.HasValue && after.LastPrintUtc != before.LastPrintUtc)
             {
-                sStream.Close();
-                sStream.Dispose();
-                sStream = null;
-                GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true);
+                return "Printed successfully at " + DisplayText.FormatTime(after.LastPrintUtc.Value) + ".";
+            }
+
+            PrintFailure failure = after.LastManualFailure;
+            if (failure != null && (before.LastManualFailure == null || failure.TimeUtc > before.LastManualFailure.TimeUtc))
+            {
+                return "Printing failed. " + DisplayText.Describe(failure.Reason) + ".";
+            }
+            return string.Empty;
+        }
+
+        private async void LoadPreview(string path)
+        {
+            _previewPath = path;
+            int version = ++_previewVersion;
+            BitmapSource preview = await Task.Run(() => DecodePreview(path));
+            if (version == _previewVersion)
+            {
+                Preview = preview;
             }
         }
 
-        private void Callback_FreeImageView(object obj)
+        private static BitmapSource DecodePreview(string path)
         {
-            BmPreviewBitmap = null;
-            DisposeMediaStream();
+            try
+            {
+                // The service may replace the file at any time, so it is opened with every sharing
+                // mode and read completely right away.
+                using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+                {
+                    var image = new BitmapImage();
+                    image.BeginInit();
+                    image.CacheOption = BitmapCacheOption.OnLoad;
+                    image.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
+                    image.DecodePixelWidth = PreviewDecodeWidth;
+                    image.StreamSource = stream;
+                    image.EndInit();
+                    image.Freeze();
+                    return image;
+                }
+            }
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is NotSupportedException ||
+                e is FormatException || e is ArgumentException || e is OverflowException ||
+                e is ExternalException)
+            {
+                return null; // no preview; printing does not depend on it
+            }
         }
-
-
     }
 }

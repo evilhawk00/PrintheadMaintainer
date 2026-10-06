@@ -34,6 +34,7 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -44,6 +45,7 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -58,8 +60,6 @@
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
-    <Reference Include="System.Management" />
-    <Reference Include="System.ServiceProcess" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.CSharp" />
@@ -84,13 +84,8 @@
     <Compile Include="Enums\PrintState.cs" />
     <Compile Include="Enums\ServiceState.cs" />
     <Compile Include="Enums\ValueState.cs" />
-    <Compile Include="Events\EventArgs.cs" />
-    <Compile Include="Events\EventRaiser.cs" />
-    <Compile Include="GlobalConstants\NamedPipeConstants.cs" />
-    <Compile Include="GlobalConstants\RegistryConstants.cs" />
-    <Compile Include="GlobalConstants\ServiceConstants.cs" />
-    <Compile Include="Interfaces\IPageViewModel.cs" />
-    <Compile Include="Mediators\Mediator.cs" />
+    <Compile Include="Interfaces\INavigator.cs" />
+    <Compile Include="Logging\ServiceLogReader.cs" />
     <Compile Include="Models\ImageSelection.cs" />
     <Compile Include="Models\PaperSourceOption.cs" />
     <Compile Include="Models\PrintFailure.cs" />
@@ -98,7 +93,6 @@
     <Compile Include="Models\ServiceStatus.cs" />
     <Compile Include="Models\SettingsUpdate.cs" />
     <Compile Include="NamedPipeClient\ApplySettingsResult.cs" />
-    <Compile Include="NamedPipeClient\IPCClient.cs" />
     <Compile Include="NamedPipeClient\PrintNowResult.cs" />
     <Compile Include="NamedPipeClient\ServiceClient.cs" />
     <Compile Include="NamedPipeClient\ServiceMessage.cs" />
@@ -106,16 +100,10 @@
     <Compile Include="Notifications\UserReturnDetector.cs" />
     <Compile Include="Presentation\DisplayText.cs" />
     <Compile Include="Presentation\StatusSummary.cs" />
-    <Compile Include="Singletons\PrinterNameSingletons.cs" />
+    <Compile Include="Printing\PrinterCatalog.cs" />
+    <Compile Include="Printing\PrintImageLoader.cs" />
     <Compile Include="Status\ServiceConnection.cs" />
     <Compile Include="Status\StatusMonitor.cs" />
-    <Compile Include="Threads\RealtimeStatusUpdater.cs" />
-    <Compile Include="Utils\FileSelectorUtils.cs" />
-    <Compile Include="Utils\RandomUtils.cs" />
-    <Compile Include="Utils\PrinterCapabilityUtils.cs" />
-    <Compile Include="Utils\RegistryUtils.cs" />
-    <Compile Include="Utils\ServiceUtils.cs" />
-    <Compile Include="Utils\UWPNotificationUtils.cs" />
     <Compile Include="ValueConverters\ServiceStateToBackgroundColorConverter.cs" />
     <Compile Include="ValueConverters\ServiceStateToDrawingImageConverter.cs" />
     <Compile Include="ValueConverters\ServiceStateToWindowIconConverter.cs" />
@@ -124,10 +112,10 @@
     <Compile Include="ViewModels\ChoosePrinterViewModel.cs" />
     <Compile Include="ViewModels\HomeViewModel.cs" />
     <Compile Include="ViewModels\LogsViewModel.cs" />
+    <Compile Include="ViewModels\MainViewModel.cs" />
     <Compile Include="ViewModels\PrintNowViewModel.cs" />
     <Compile Include="ViewModels\SettingsViewModel.cs" />
     <Compile Include="ViewModels\ViewModelBase.cs" />
-    <Compile Include="ViewModels\ViewModelMainWindow.cs" />
     <Compile Include="Views\AboutView.xaml.cs">
       <DependentUpon>AboutView.xaml</DependentUpon>
     </Compile>

@@ -16,17 +16,12 @@
 * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 * 
 */
-using System;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace PrintheadMaintainerUI.Views
 {
-    /// <summary>
-    /// SettingsView.xaml 的互動邏輯
-    /// </summary>
     public partial class SettingsView : UserControl
     {
         public SettingsView()
@@ -34,22 +29,10 @@ namespace PrintheadMaintainerUI.Views
             InitializeComponent();
         }
 
-
-        private void TextChanged_RemoveSpace(object sender, EventArgs e)
-        {
-            //remove whitespaces
-            (sender as TextBox).Text = Regex.Replace((sender as TextBox).Text, @"\s+", "");
-            
-        }
-
+        // Only digits can be typed into the interval box; the view model checks the range.
         private void PreviewTextInput_NumberOnly(object sender, TextCompositionEventArgs e)
         {
-            
-            e.Handled = !e.Text.All(char.IsDigit);
+            e.Handled = !e.Text.All(ch => ch >= '0' && ch <= '9');
         }
-
-
-        
-
     }
 }

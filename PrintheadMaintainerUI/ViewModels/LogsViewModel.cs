@@ -18,85 +18,54 @@
 */
 using PrintheadMaintainerUI.Commands;
 using PrintheadMaintainerUI.Interfaces;
-using PrintheadMaintainerUI.Mediators;
+using PrintheadMaintainerUI.Logging;
 using System;
+using System.Collections.Generic;
 using System.IO;
-using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Input;
-using static System.Environment;
 
 namespace PrintheadMaintainerUI.ViewModels
 {
-    public class LogsViewModel : ViewModelBase, IPageViewModel
+    public sealed class LogsViewModel : ViewModelBase
     {
+        private int _loadVersion;
+        private string _logText = string.Empty;
 
-        private ICommand _switchToHomeView;
-        private string _strLogFileText;
-
-        public ICommand SwitchToHomeView
+        public LogsViewModel(INavigator navigator)
         {
-            get
-            {
-                return _switchToHomeView ?? (_switchToHomeView = new RelayCommand(x =>
-                {
-                    Mediator.Notify("SwitchToHome", "");
-                }));
-            }
+            BackCommand = new RelayCommand(navigator.ShowHome);
+            RefreshCommand = new RelayCommand(Load);
         }
 
-        public ICommand CmdRefreshLog
+        public ICommand BackCommand { get; }
+
+        public ICommand RefreshCommand { get; }
+
+        /// <summary>The service log, newest entry first.</summary>
+        public string LogText
         {
-
-            get
-            {
-                return new RelayCommand(x =>
-                {
-                    VoidLoadLogFile();
-                });
-            }
-
+            get => _logText;
+            private set => SetProperty(ref _logText, value);
         }
 
-        public string StrLogFileText {
-            get {
-                return _strLogFileText;
-            }
-            set
-            {
-                _strLogFileText = value;
-                OnPropertyChanged(nameof(StrLogFileText));
-            }
-        }
-
-        public void VoidRefreshView()
+        public async void Load()
         {
-
-            VoidLoadLogFile();
-
-        }
-
-
-        public LogsViewModel() {
-
-            VoidLoadLogFile();
-
-            
-
-
-        }
-
-        private void VoidLoadLogFile() {
-
+            int version = ++_loadVersion;
+            string text;
             try
             {
-                StrLogFileText = File.ReadAllText(GetFolderPath(SpecialFolder.CommonApplicationData) + "\\Printhead Maintainer\\Printhead Maintainer.log", Encoding.UTF8);
-
+                IReadOnlyList<string> entries = await Task.Run(() => ServiceLogReader.ReadNewestFirst());
+                text = entries.Count > 0 ? string.Join(Environment.NewLine, entries) : "Nothing has been logged yet.";
             }
-            catch (Exception)
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
             {
-                StrLogFileText = "Loading logs failed...please try again later.";
+                text = "The log could not be read. " + e.Message;
             }
-            
+            if (version == _loadVersion)
+            {
+                LogText = text;
+            }
         }
     }
 }

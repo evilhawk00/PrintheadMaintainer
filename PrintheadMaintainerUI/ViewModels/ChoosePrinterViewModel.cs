@@ -18,118 +18,83 @@
 */
 using PrintheadMaintainerUI.Commands;
 using PrintheadMaintainerUI.Interfaces;
-using PrintheadMaintainerUI.Mediators;
-using PrintheadMaintainerUI.Singletons;
-using System.Collections.ObjectModel;
-using System.Management;
+using PrintheadMaintainerUI.Printing;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Input;
 
 namespace PrintheadMaintainerUI.ViewModels
 {
-    public class ChoosePrinterViewModel : ViewModelBase, IPageViewModel
+    public sealed class ChoosePrinterViewModel : ViewModelBase
     {
-        private ICommand _switchToSettingsView;
+        private bool _loading;
+        private int _loadVersion;
+        private IReadOnlyList<string> _printers = Array.Empty<string>();
+        private string _selectedPrinter;
+        private string _message = string.Empty;
 
-        private string _strSelectedPrinterName;
-
-        public ObservableCollection<string> OcStrPrinterList { get; set; }
-
-        public string StrSelectedPrinterName {
-
-            get {
-                return _strSelectedPrinterName;
-            }
-            set {
-                _strSelectedPrinterName = value;
-            }
-        
-        }
-
-        public ICommand SwitchToSettingsView
+        public ChoosePrinterViewModel(INavigator navigator)
         {
-            get
-            {
-                return _switchToSettingsView ?? (_switchToSettingsView = new RelayCommand(x =>
-                {
-                    Mediator.Notify("BackToSettings", "");
-                }));
-            }
+            BackCommand = new RelayCommand(() => navigator.ReturnToSettings(null));
+            SelectCommand = new RelayCommand(() => navigator.ReturnToSettings(SelectedPrinter), () => SelectedPrinter != null);
+            RefreshCommand = new RelayCommand(() => Load(SelectedPrinter), () => !_loading);
         }
 
+        public ICommand BackCommand { get; }
 
-        public ICommand CmdSelectPrinter
+        public ICommand SelectCommand { get; }
+
+        public ICommand RefreshCommand { get; }
+
+        public IReadOnlyList<string> Printers
         {
-
-            get
-            {
-                //send value to server
-                return new RelayCommand(x =>
-                {
-                    VoidPassPrinterNameToSingleton();
-                    Mediator.Notify("BackToSettings", "");
-                });
-            }
-
+            get => _printers;
+            private set => SetProperty(ref _printers, value);
         }
 
-
-        public ICommand CmdRefreshPrinter
+        public string SelectedPrinter
         {
+            get => _selectedPrinter;
+            set => SetProperty(ref _selectedPrinter, value);
+        }
 
-            get
+        public string Message
+        {
+            get => _message;
+            private set => SetProperty(ref _message, value);
+        }
+
+        public async void Load(string printerToSelect)
+        {
+            int version = ++_loadVersion;
+            _loading = true;
+            Message = "Looking for printers...";
+            CommandManager.InvalidateRequerySuggested();
+
+            IReadOnlyList<string> printers;
+            string error = null;
+            try
             {
-                //send value to server
-                return new RelayCommand(x =>
-                {
-                    VoidUpdatePrinterList();
-                    
-                });
+                printers = await Task.Run(() => PrinterCatalog.GetInstalledPrinters());
             }
-
-        }
-
-        public void VoidRefreshView() {
-
-            VoidUpdatePrinterList();
-
-        }
-
-        public ChoosePrinterViewModel() {
-
-
-            VoidUpdatePrinterList();
-
-        }
-
-        private void VoidUpdatePrinterList() {
-
-            OcStrPrinterList = new ObservableCollection<string>();
-
-            ManagementScope objScope = new ManagementScope(ManagementPath.DefaultPath); 
-            objScope.Connect();
-
-            SelectQuery selectQuery = new SelectQuery();
-            selectQuery.QueryString = "Select * from win32_Printer";
-            ManagementObjectSearcher MOS = new ManagementObjectSearcher(objScope, selectQuery);
-            ManagementObjectCollection MOC = MOS.Get();
-            foreach (ManagementObject mo in MOC)
+            catch (Win32Exception e)
             {
-                OcStrPrinterList.Add(mo["Name"].ToString());
+                printers = Array.Empty<string>();
+                error = "The printers could not be listed. " + e.Message;
             }
-            OnPropertyChanged(nameof(OcStrPrinterList));
-        }
-
-        private void VoidPassPrinterNameToSingleton() {
-
-            if (_strSelectedPrinterName != null && !_strSelectedPrinterName.Equals("")) {
-
-                PrinterNameSingletons pnsInstance = PrinterNameSingletons.Instance;
-                pnsInstance.strPrinterName = _strSelectedPrinterName;
-
+            if (version != _loadVersion)
+            {
+                return; // a newer request replaced this one
             }
 
+            _loading = false;
+            Printers = printers;
+            SelectedPrinter = printers.Contains(printerToSelect) ? printerToSelect : null;
+            Message = error ?? (printers.Count == 0 ? "No printers are installed." : string.Empty);
+            CommandManager.InvalidateRequerySuggested();
         }
-
-
     }
 }

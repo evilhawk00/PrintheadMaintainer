@@ -36,7 +36,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
         <DockPanel Grid.Row="0" HorizontalAlignment="Stretch"  LastChildFill="True" Margin="0,0,0,0" VerticalAlignment="Stretch">
-            <Button VerticalAlignment="Stretch" HorizontalAlignment="Left" Height="47" Width="47" Command="{Binding SwitchToHomeView}" Style="{StaticResource MinimizeStyle}">
+            <Button VerticalAlignment="Stretch" HorizontalAlignment="Left" Height="47" Width="47" Command="{Binding BackCommand}" Style="{StaticResource MinimizeStyle}">
                 <Image Source="{StaticResource BackArrow_Icon}" Height="18" Width="18"/>
 
             </Button>
@@ -69,17 +69,17 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
                 <StackPanel HorizontalAlignment="Center" Grid.Column="0" Grid.Row="0" Grid.RowSpan="3" Height="Auto" Margin="0" VerticalAlignment="Center" Width="Auto">
                     <Border BorderThickness="5" Margin="0,15,0,0" BorderBrush="White" VerticalAlignment="Center">
-                        <Image HorizontalAlignment="Center" Height="197" Margin="0" VerticalAlignment="Top" Width="139" Source="{Binding BmPreviewBitmap}" Stretch="Fill" />
+                        <Image HorizontalAlignment="Center" Height="197" Margin="0" VerticalAlignment="Top" Width="139" Source="{Binding Preview}" Stretch="Fill" />
                     </Border>
                         <TextBlock HorizontalAlignment="Center" Margin="0,5,0,0" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Text="Preview" VerticalAlignment="Center"/>
 
                 </StackPanel>
-                <TextBlock Grid.Column="1" Grid.Row="1" FontSize="25" FontWeight="Medium" HorizontalAlignment="Left" Margin="0" TextWrapping="Wrap" Text="{Binding StrPrinterName}" VerticalAlignment="Top"/>
-                <TextBlock Grid.Column="1" Grid.Row="2" FontSize="15" FontWeight="Regular" HorizontalAlignment="Left" Margin="0" TextWrapping="Wrap" Text="{Binding StrBmpPath}" VerticalAlignment="Top"/>
+                <TextBlock Grid.Column="1" Grid.Row="1" FontSize="25" FontWeight="Medium" HorizontalAlignment="Left" Margin="0" TextWrapping="Wrap" Text="{Binding PrinterName}" VerticalAlignment="Top"/>
+                <TextBlock Grid.Column="1" Grid.Row="2" FontSize="15" FontWeight="Regular" HorizontalAlignment="Left" Margin="0" TextWrapping="Wrap" Text="{Binding ImageName}" VerticalAlignment="Top"/>
 
             </Grid>
             
-            <TextBlock HorizontalAlignment="Center" Margin="0" Grid.Row="2" TextWrapping="Wrap" Text="{Binding StrSendPrintCommandResult}" VerticalAlignment="Bottom"/>
+            <TextBlock HorizontalAlignment="Center" Margin="0" Grid.Row="2" TextWrapping="Wrap" Text="{Binding Message}" VerticalAlignment="Bottom"/>
 
         </Grid>
 
@@ -88,7 +88,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
 
-            <Button Content="Print Now" Grid.Column="1" FontSize="17" FontWeight="Bold" Style="{StaticResource DarkButtonStyle}" HorizontalAlignment="Center" Margin="0,0,0,0" VerticalAlignment="Center" Height="40" Width="160" Command="{Binding CmdPrintNow}"/>
+            <Button Content="Print Now" Grid.Column="1" FontSize="17" FontWeight="Bold" Style="{StaticResource DarkButtonStyle}" HorizontalAlignment="Center" Margin="0,0,0,0" VerticalAlignment="Center" Height="40" Width="160" Command="{Binding PrintNowCommand}"/>
             
 
 

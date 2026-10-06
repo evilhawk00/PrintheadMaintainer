@@ -18,794 +18,370 @@
 */
 using Microsoft.Win32;
 using PrintheadMaintainerUI.Commands;
-using PrintheadMaintainerUI.GlobalConstants;
 using PrintheadMaintainerUI.Interfaces;
-using PrintheadMaintainerUI.Mediators;
 using PrintheadMaintainerUI.Models;
 using PrintheadMaintainerUI.NamedPipeClient;
-using PrintheadMaintainerUI.Singletons;
-using PrintheadMaintainerUI.Utils;
+using PrintheadMaintainerUI.Printing;
+using PrintheadMaintainerUI.Status;
 using System;
-using System.Collections.ObjectModel;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 
 namespace PrintheadMaintainerUI.ViewModels
 {
-    public class SettingsViewModel : ViewModelBase, IPageViewModel
+    /// <summary>
+    /// Edits the service's settings. Changes are kept here until the user applies them, and then
+    /// sent in one request, which the service applies completely or not at all.
+    /// </summary>
+    public sealed class SettingsViewModel : ViewModelBase
     {
-        private ICommand _switchToHomeView;
-        private ICommand _switchToChoosePrinterView;
-        private ICommand _refreshPaperSources;
+        // The same limits as the service (Settings/ServiceSettings.h), which checks them again.
+        private const int MinIntervalDays = 1;
+        private const int MaxIntervalDays = 365;
+        private const int DefaultIntervalDays = 7;
 
-        private bool _bSettingsEnabled;
-        private bool _bSettingsEnabled_Original;
+        private const string NotAvailable = "--";
+        private const string DefaultImageName = "Default image";
 
-        private string _strUnsaved_New_PrinterName;
-        private string _strPrinterName;
+        private readonly INavigator _navigator;
+        private readonly ServiceClient _client;
+        private readonly StatusMonitor _monitor;
 
-        private string _strSettingsImagePath;
-        private string _strUnsaved_New_SettingsImagePath;
+        // The settings as the service has them; null while they could not be loaded.
+        private ServiceStatus _current;
 
-        private int _intSettingsInterval;
-        private int _intSettingsInterval_Original;
-        private bool bIfSettingsIntervalUsesDefaultValue = false;
+        // Unsaved changes; null means unchanged.
+        private string _newPrinterName;
+        private ImageSelection _newImage;
 
-        private string _strTextApplyResult;
+        private bool _busy;
+        private bool _enabled;
 
-        private ObservableCollection<PaperSourceOption> _paperSourceOptions = new ObservableCollection<PaperSourceOption>();
-        private PaperSourceOption _selectedPaperSourceOption;
-        private int _currentPaperSourceRawKind;
-        private int? _pendingPaperSourceRawKind;
+        // The selected paper source. The list only shows it, so the value is right even while
+        // the list of paper sources is still being loaded.
+        private int _paperSource;
+        private int _paperSourcesVersion;
+        private string _intervalDays = string.Empty;
+        private IReadOnlyList<PaperSourceOption> _paperSources = Array.Empty<PaperSourceOption>();
+        private PaperSourceOption _selectedPaperSource;
+        private string _message = string.Empty;
 
-        //LOCKS
-        private bool bApplyEnabledSettings_LOCK = false;
-        private bool bApplyPrinterNameSettings_LOCK = false;
-        private bool bApplyIntervalSettings_LOCK = false;
-        private bool bApplyBmpPathSettings_LOCK = false;
-        private bool bApplyPaperSourceSettings_LOCK = false;
-
-        //Apply Result Flag
-        private bool bApplyResultOK_Enabled = true;
-        private bool bApplyResultOK_PrinterName = true;
-        private bool bApplyResultOK_Interval = true;
-        private bool bApplyResultOK_BmpPath = true;
-        private bool bApplyResultOK_PaperSource = true;
-
-        public ICommand SwitchToHomeView
+        public SettingsViewModel(INavigator navigator, ServiceClient client, StatusMonitor monitor)
         {
-            get
-            {
-                return _switchToHomeView ?? (_switchToHomeView = new RelayCommand(x =>
-                {
-                    Mediator.Notify("SwitchToHome", "");
-                    
-                }));
-            }
+            _navigator = navigator ?? throw new ArgumentNullException(nameof(navigator));
+            _client = client ?? throw new ArgumentNullException(nameof(client));
+            _monitor = monitor ?? throw new ArgumentNullException(nameof(monitor));
+
+            BackCommand = new RelayCommand(navigator.ShowHome);
+            SelectPrinterCommand = new RelayCommand(() => _navigator.ChoosePrinter(PrinterNameToUse), CanEdit);
+            RefreshPaperSourcesCommand = new RelayCommand(LoadPaperSources, CanEdit);
+            SelectImageCommand = new RelayCommand(SelectImage, CanEdit);
+            UseDefaultImageCommand = new RelayCommand(UseDefaultImage, () => CanEdit() && (_newImage != null ? _newImage != ImageSelection.Default : _current.CustomImage));
+            ApplyCommand = new RelayCommand(Apply, () => CanEdit() && HasChanges && IsIntervalValid);
+            DiscardCommand = new RelayCommand(() => ShowSettings(_current), () => CanEdit() && HasChanges);
         }
 
-        public ICommand SwitchToChoosePrinterView
+        public ICommand BackCommand { get; }
+
+        public ICommand SelectPrinterCommand { get; }
+
+        public ICommand RefreshPaperSourcesCommand { get; }
+
+        public ICommand SelectImageCommand { get; }
+
+        public ICommand UseDefaultImageCommand { get; }
+
+        public ICommand ApplyCommand { get; }
+
+        public ICommand DiscardCommand { get; }
+
+        /// <summary>False while the settings are loaded or saved, or when they could not be loaded.</summary>
+        public bool IsEditable => CanEdit();
+
+        public bool Enabled
         {
-            get
-            {
-                return _switchToChoosePrinterView ?? (_switchToChoosePrinterView = new RelayCommand(x =>
-                {
-                    Mediator.Notify("SwitchToChoosePrinter", "");
-                }));
-            }
-        }
-
-        public ICommand CmdSelectBmp
-        {
-
-            get
-            {
-                //send value to server
-                return new RelayCommand(x =>
-                {
-                    VoidOnClickSelectBmpBtn();
-                });
-            }
-
-        }
-
-        public ICommand CmdRefreshPaperSources
-
-        {
-
-            get
-
-            {
-
-                return _refreshPaperSources ?? (_refreshPaperSources = new RelayCommand(x =>
-
-                {
-
-                    VoidReloadPaperSourcesForCurrentPrinter();
-
-                }));
-
-            }
-
-        }
-
-
-
-        public ICommand CmdApplySettings
-        {
-
-            get
-            {
-                //send value to server
-                return new RelayCommand(x =>
-                {
-                    VoidOnClickBtnApplyAllSettings();
-                }, x => 
-                { 
-                    return BIsEnabled_BtnApplyOrDiscardChanges(); 
-                });
-            }
-
-        }
-
-        
-
-
-        public ICommand CmdDiscardChanges{
-
-            get
-            {
-                //send value to server
-                return new RelayCommand(x =>
-                {
-                    VoidOnClickBtnDiscardChanges();
-                }, x =>
-                {
-                    return BIsEnabled_BtnApplyOrDiscardChanges();
-                });
-            }
-
-        }
-
-
-        private bool BIsEnabled_BtnApplyOrDiscardChanges()
-        {
-            //first check all locks
-            if (!bApplyEnabledSettings_LOCK && !bApplyPrinterNameSettings_LOCK && !bApplyIntervalSettings_LOCK && !bApplyBmpPathSettings_LOCK && !bApplyPaperSourceSettings_LOCK)
-            {
-                // all locks are not locked
-
-                if (_bSettingsEnabled != _bSettingsEnabled_Original)
-                {
-                    return true;
-                }
-                else if (_strUnsaved_New_PrinterName != null && !_strUnsaved_New_PrinterName.Equals(""))
-                {
-                    return true;
-                }
-                else if (_pendingPaperSourceRawKind.HasValue)
-                {
-                    return true;
-                }
-                else if (_intSettingsInterval != _intSettingsInterval_Original || bIfSettingsIntervalUsesDefaultValue)
-                {
-                    return true;
-                }
-                else if (_strUnsaved_New_SettingsImagePath != null && !_strUnsaved_New_SettingsImagePath.Equals(""))
-                {
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
-
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-        public bool BSettingsEnabled {
-            get
-            {
-                return _bSettingsEnabled;
-            }
+            get => _enabled;
             set
             {
-                if (value != _bSettingsEnabled) {
-                    _bSettingsEnabled = value;
-                    OnPropertyChanged(nameof(BSettingsEnabled));
-                } 
-            }
-        }
-        public string StrSettingsPrinterName {
-
-            get {
-
-                if (VoidGetPrinterNameFromSingleton())
+                if (SetProperty(ref _enabled, value))
                 {
-                    return _strUnsaved_New_PrinterName;
+                    OnEdited();
                 }
-                else {
-                    return _strPrinterName;
-                }
-
             }
-
-        }
-        public int IntSettingsInterval {
-
-            get {
-
-                return _intSettingsInterval;
-
-            }
-            set {
-                if (value != _intSettingsInterval) {
-                    _intSettingsInterval = value;
-                    OnPropertyChanged(nameof(_intSettingsInterval));
-                }
-                
-            }
-
-
-        }
-        public string StrSettingsImagePath {
-
-            get {
-                if (_strUnsaved_New_SettingsImagePath != null && !_strUnsaved_New_SettingsImagePath.Equals(""))
-                {
-                    return _strUnsaved_New_SettingsImagePath;
-                }
-                else {
-                    return _strSettingsImagePath;
-                }
-
-            }
-
         }
 
-        public ObservableCollection<PaperSourceOption> PaperSourceOptions
+        public string PrinterName
         {
             get
             {
-                return _paperSourceOptions;
+                if (_current == null)
+                {
+                    return NotAvailable;
+                }
+                string name = PrinterNameToUse;
+                return name.Length > 0 ? name : "(Not set)";
             }
         }
 
-        public PaperSourceOption SelectedPaperSourceOption
+        /// <summary>The printing interval in days, as typed.</summary>
+        public string IntervalDays
         {
-            get
-            {
-                return _selectedPaperSourceOption;
-            }
+            get => _intervalDays;
             set
             {
-                if (_selectedPaperSourceOption != value)
+                if (SetProperty(ref _intervalDays, value ?? string.Empty))
                 {
-                    _selectedPaperSourceOption = value;
-
-                    if (value == null)
-                    {
-                        _pendingPaperSourceRawKind = null;
-                    }
-                    else if (value.RawKind != _currentPaperSourceRawKind)
-                    {
-                        _pendingPaperSourceRawKind = value.RawKind;
-                    }
-                    else
-                    {
-                        _pendingPaperSourceRawKind = null;
-                    }
-
-                    OnPropertyChanged(nameof(SelectedPaperSourceOption));
-                    CommandManager.InvalidateRequerySuggested();
+                    OnEdited();
                 }
             }
         }
 
-        public string StrTextApplyResult
+        public IReadOnlyList<PaperSourceOption> PaperSources
         {
-            get {
-                return _strTextApplyResult;
-            }
-            set {
-                _strTextApplyResult = value;
-                OnPropertyChanged(nameof(StrTextApplyResult));
-            }
-        
+            get => _paperSources;
+            private set => SetProperty(ref _paperSources, value);
         }
 
-        public void VoidRefreshView() {
-
-            VoidUpdateUISettings();
-
-
-        }
-
-        public SettingsViewModel() {
-
-            VoidUpdateUISettings();
-
-        }
-
-        private void VoidUpdateUISettings() {
-
-            //reset old value
-            VoidResetPrinterNameSingleton();
-            _strUnsaved_New_SettingsImagePath = null;
-
-            RegistryKey rkHandle = RegistryUtils.RkOpenRegistyHandle(false);
-            if (rkHandle == null)
+        public PaperSourceOption SelectedPaperSource
+        {
+            get => _selectedPaperSource;
+            set
             {
-                //at this time may be the first start so the registry is still not created
-                _strPrinterName = "(Not set)";
-                //setting not available or corrupted, set to default 7
-                _intSettingsInterval_Original = 7;
-                //initialize int variable
-                _intSettingsInterval = _intSettingsInterval_Original;
-                bIfSettingsIntervalUsesDefaultValue = true;
-                _strSettingsImagePath = "(Not set)";
+                // The list box clears the selection while its items are replaced; keep ours.
+                if (value != null && SetProperty(ref _selectedPaperSource, value))
+                {
+                    _paperSource = value.RawKind;
+                    OnEdited();
+                }
+            }
+        }
 
-                _currentPaperSourceRawKind = 0;
-                _pendingPaperSourceRawKind = null;
-                VoidReloadPaperSourcesForPrinter(null, _currentPaperSourceRawKind, false);
+        public string ImageName
+        {
+            get
+            {
+                if (_newImage != null)
+                {
+                    return _newImage.CustomImage?.SourceName ?? DefaultImageName;
+                }
+                if (_current == null)
+                {
+                    return NotAvailable;
+                }
+                return _current.CustomImage ? _current.ImageSourceName : DefaultImageName;
+            }
+        }
 
+        public string Message
+        {
+            get => _message;
+            private set => SetProperty(ref _message, value);
+        }
+
+        private string PrinterNameToUse => _newPrinterName ?? _current?.PrinterName ?? string.Empty;
+
+        private bool IsIntervalValid => ParseInterval().HasValue;
+
+        private bool HasChanges =>
+            _current != null &&
+            (_enabled != _current.Enabled || ParseInterval() != _current.IntervalDays || _newPrinterName != null ||
+             _paperSource != _current.PaperSource || _newImage != null);
+
+        /// <summary>Shows the settings as the service has them now, dropping unsaved changes.</summary>
+        public async void Load()
+        {
+            SetBusy(true);
+            ShowSettings(null);
+            Message = "Loading the settings...";
+
+            ServiceStatus status = await _client.GetStatusAsync();
+            SetBusy(false);
+            ShowSettings(status);
+        }
+
+        /// <summary>Uses the printer the user chose on the printer page.</summary>
+        public void SelectPrinter(string printerName)
+        {
+            if (_current == null)
+            {
                 return;
             }
 
-            int intResultEnabled = RegistryUtils.IntReadUnsignedInteger(rkHandle, RegistryConstants.strRegistryValue_Enabled);
-            //default is off, if setting corrupted, just set to 0
-            if (intResultEnabled == 1)
-            {
-                _bSettingsEnabled_Original = true;
-            }
-            else {
-                _bSettingsEnabled_Original = false;
-            }
+            _newPrinterName = printerName == _current.PrinterName ? null : printerName;
+            OnPropertyChanged(nameof(PrinterName));
 
-            //initialize bool variable
-            _bSettingsEnabled = _bSettingsEnabled_Original;
-
-            string strResultPrinterName = RegistryUtils.StrRegistryReadSingleLineString(rkHandle, RegistryConstants.strRegistryValue_PrinterName);
-            if (strResultPrinterName != null && !strResultPrinterName.Equals(""))
-            {
-                _strPrinterName = strResultPrinterName;
-            }
-            else {
-                _strPrinterName = "(Not set)";
-            }
-
-            int intResultPaperSource = RegistryUtils.IntReadUnsignedInteger(rkHandle, RegistryConstants.strRegistryValue_PrinterPaperSource);
-            if (intResultPaperSource >= 0)
-            {
-                _currentPaperSourceRawKind = intResultPaperSource;
-            }
-            else
-            {
-                _currentPaperSourceRawKind = 0;
-            }
-
-            _pendingPaperSourceRawKind = null;
-
-            string printerNameForSources = (!string.IsNullOrEmpty(_strPrinterName) && !_strPrinterName.Equals("(Not set)", StringComparison.Ordinal)) ? _strPrinterName : null;
-            VoidReloadPaperSourcesForPrinter(printerNameForSources, _currentPaperSourceRawKind, false);
-
-            int intResultInterval = RegistryUtils.IntReadUnsignedInteger(rkHandle, RegistryConstants.strRegistryValue_Interval);
-            if (intResultInterval > 0)
-            {
-                _intSettingsInterval_Original = intResultInterval;
-            }
-            else {
-                //setting not available or corrupted, set to default 7
-                _intSettingsInterval_Original = 7;
-                bIfSettingsIntervalUsesDefaultValue = true;
-            }
-
-            //initialize int variable
-            _intSettingsInterval = _intSettingsInterval_Original;
-
-            string strResultBmpPath = RegistryUtils.StrRegistryReadSingleLineString(rkHandle, RegistryConstants.strRegistryValue_BmpPath);
-            if (strResultBmpPath != null && !strResultBmpPath.Equals(""))
-            {
-                _strSettingsImagePath = strResultBmpPath;
-            }
-            else {
-                _strSettingsImagePath = "(Not set)";
-            }
-
-
-
+            // Paper sources differ between printers, so a new printer starts with its default.
+            _paperSource = _newPrinterName == null ? _current.PaperSource : PrinterCatalog.DefaultPaperSource;
+            LoadPaperSources();
+            OnEdited();
         }
 
-        private void VoidOnClickSelectBmpBtn() {
-
-            string strChosenImage = FileSelectorUtils.StrBrowseBmpFile();
-            if (strChosenImage != null && !strChosenImage.Equals("")) {
-                _strUnsaved_New_SettingsImagePath = strChosenImage;
-                OnPropertyChanged(nameof(StrSettingsImagePath));
-            }
-            
-            
-
-        }
-
-        private void VoidApplyEnabledSettings()
+        private bool CanEdit()
         {
-            bApplyEnabledSettings_LOCK = true;
-            bApplyResultOK_Enabled = false;
-
-            int intValue = Convert.ToInt32(_bSettingsEnabled);
-            string strValueData = intValue.ToString();
-
-            //encode msg
-            string strRequestID = RandomUtils.StrGenerateRandomHexadecimalString(8);
-            string strFinalMsg = IPCClient.StrMessageEncoder(strRequestID, NamedPipeConstants.JobFlag_WriteRegistryEnabled, strValueData);
-            _ = IPCClient.AsyncSendMsgToServerAndDecodeResponse(strRequestID, strFinalMsg, VoidApplyEnabledSettings_Callback);
-
+            return !_busy && _current != null;
         }
 
-        private void VoidApplyEnabledSettings_Callback(int intResult)
+        private void SetBusy(bool busy)
         {
-
-            if (intResult == NamedPipeConstants.intServerResult_SUCCESS)
-            {
-                _bSettingsEnabled_Original = _bSettingsEnabled;
-                bApplyResultOK_Enabled = true;
-            }
-            else {
-                //operation failed, revert to original
-                _bSettingsEnabled = _bSettingsEnabled_Original;
-            }
-            OnPropertyChanged(nameof(BSettingsEnabled));
-
-            bApplyEnabledSettings_LOCK = false;
-            VoidUpdateText_ApplyResult();
-        }
-
-        private void VoidApplyPrinterNameSettings()
-        {
-            bApplyPrinterNameSettings_LOCK = true;
-            bApplyResultOK_PrinterName = false;
-
-            //encode msg
-            string strRequestID = RandomUtils.StrGenerateRandomHexadecimalString(8);
-            string strFinalMsg = IPCClient.StrMessageEncoder(strRequestID, NamedPipeConstants.JobFlag_WriteRegistryPrinterName, _strUnsaved_New_PrinterName);
-            _ = IPCClient.AsyncSendMsgToServerAndDecodeResponse(strRequestID, strFinalMsg, VoidApplyPrinterNameSettings_Callback);
-
-        }
-
-
-        private void VoidApplyPrinterNameSettings_Callback(int intResult)
-        {
-
-            if (intResult == NamedPipeConstants.intServerResult_SUCCESS)
-            {
-                _strPrinterName = _strUnsaved_New_PrinterName;
-               
-                bApplyResultOK_PrinterName = true;
-            }
-
-            //no matter success or fail, both need to reset setting
-            VoidResetPrinterNameSingleton();
-            _strUnsaved_New_PrinterName = null;
-
-            VoidReloadPaperSourcesForCurrentPrinter();
-
-            OnPropertyChanged(nameof(StrSettingsPrinterName));
-
-            bApplyPrinterNameSettings_LOCK = false;
-            VoidUpdateText_ApplyResult();
+            _busy = busy;
+            OnPropertyChanged(nameof(IsEditable));
             CommandManager.InvalidateRequerySuggested();
-            return;
         }
 
-        private void VoidApplyIntervalSettings()
+        private void ShowSettings(ServiceStatus status)
         {
-            bApplyIntervalSettings_LOCK = true;
-            bApplyResultOK_Interval = false;
+            _current = status;
+            _newPrinterName = null;
+            _newImage = null;
+            _enabled = status?.Enabled ?? false;
+            _intervalDays = (status?.IntervalDays ?? DefaultIntervalDays).ToString(CultureInfo.InvariantCulture);
+            _paperSource = status?.PaperSource ?? PrinterCatalog.DefaultPaperSource;
+            OnPropertyChanged(nameof(Enabled));
+            OnPropertyChanged(nameof(IntervalDays));
+            OnPropertyChanged(nameof(PrinterName));
+            OnPropertyChanged(nameof(ImageName));
+            OnPropertyChanged(nameof(IsEditable));
+            LoadPaperSources();
 
-            //encode msg
-            string strRequestID = RandomUtils.StrGenerateRandomHexadecimalString(8);
-            string strFinalMsg = IPCClient.StrMessageEncoder(strRequestID, NamedPipeConstants.JobFlag_WriteRegistryInterval, _intSettingsInterval.ToString());
-            _ = IPCClient.AsyncSendMsgToServerAndDecodeResponse(strRequestID, strFinalMsg, VoidApplyIntervalSettings_Callback);
-
+            Message = status == null && !_busy ? "Cannot connect to the Printhead Maintainer service." : string.Empty;
+            CommandManager.InvalidateRequerySuggested();
         }
 
-
-        private void VoidApplyIntervalSettings_Callback(int intResult)
+        private void OnEdited()
         {
+            Message = IsIntervalValid
+                ? string.Empty
+                : "The printing interval must be " + MinIntervalDays + " to " + MaxIntervalDays + " days.";
+            CommandManager.InvalidateRequerySuggested();
+        }
 
-            if (intResult == NamedPipeConstants.intServerResult_SUCCESS)
+        private int? ParseInterval()
+        {
+            bool valid = int.TryParse(_intervalDays.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out int days) &&
+                days >= MinIntervalDays && days <= MaxIntervalDays;
+            return valid ? days : (int?)null;
+        }
+
+        // Asks the printer driver for its paper sources in the background, since that can be slow.
+        private async void LoadPaperSources()
+        {
+            int version = ++_paperSourcesVersion;
+            ShowPaperSources(new[] { new PaperSourceOption("Loading...", _paperSource) });
+
+            string printerName = _current != null ? PrinterNameToUse : string.Empty;
+            IReadOnlyList<PaperSourceOption> sources = await Task.Run(() => PrinterCatalog.GetPaperSources(printerName));
+            if (version != _paperSourcesVersion)
             {
-                _intSettingsInterval_Original = _intSettingsInterval;
-                bApplyResultOK_Interval = true;
-                //if use default value, reset here
-                bIfSettingsIntervalUsesDefaultValue = false;
-            }
-            else {
-                //operation failed,revert back to original setting
-                _intSettingsInterval = _intSettingsInterval_Original;
-            
-            }
-            OnPropertyChanged(nameof(IntSettingsInterval));
-
-            bApplyIntervalSettings_LOCK = false;
-            VoidUpdateText_ApplyResult();
-            return;
-        }
-
-
-        private void VoidApplyBmpPathSettings() {
-
-            bApplyBmpPathSettings_LOCK = true;
-            bApplyResultOK_BmpPath = false;
-
-            //encode msg
-            string strRequestID = RandomUtils.StrGenerateRandomHexadecimalString(8);
-            string strFinalMsg = IPCClient.StrMessageEncoder(strRequestID,NamedPipeConstants.JobFlag_WriteRegistryBmpPath, _strUnsaved_New_SettingsImagePath );
-            _ = IPCClient.AsyncSendMsgToServerAndDecodeResponse(strRequestID, strFinalMsg, VoidApplyBmpPathSettings_Callback);
-
-        }
-
-
-        private void VoidApplyBmpPathSettings_Callback(int intResult) {
-
-            if (intResult == NamedPipeConstants.intServerResult_SUCCESS) {
-                _strSettingsImagePath = _strUnsaved_New_SettingsImagePath;
-                
-                bApplyResultOK_BmpPath = true;
+                return; // a newer request replaced this one
             }
 
-            //no matter success or not, all need to reset setting
-            _strUnsaved_New_SettingsImagePath = null;
-
-            OnPropertyChanged(nameof(StrSettingsImagePath));
-
-            bApplyBmpPathSettings_LOCK = false;
-            VoidUpdateText_ApplyResult();
-
-            return;
-        }
-
-        private bool VoidGetPrinterNameFromSingleton() {
-
-            PrinterNameSingletons pnsInstance = PrinterNameSingletons.Instance;
-            string strResult = pnsInstance.strPrinterName;
-
-            if (!string.IsNullOrEmpty(strResult))
+            // Keep a stored source the driver no longer reports, so that it is not changed by accident.
+            if (sources.All(source => source.RawKind != _paperSource))
             {
-                if (!string.Equals(_strUnsaved_New_PrinterName, strResult, StringComparison.Ordinal))
-                {
-                    _strUnsaved_New_PrinterName = strResult;
-                    _pendingPaperSourceRawKind = null;
-                    VoidReloadPaperSourcesForPrinter(_strUnsaved_New_PrinterName, 0, true);
-                }
-
-                return true;
+                sources = sources.Concat(new[] { new PaperSourceOption("Paper source " + _paperSource, _paperSource) }).ToList();
             }
-
-            return false;
-
+            ShowPaperSources(sources);
         }
 
-        private void VoidResetPrinterNameSingleton() {
-
-            PrinterNameSingletons pnsInstance = PrinterNameSingletons.Instance;
-            pnsInstance.strPrinterName = null;
+        private void ShowPaperSources(IReadOnlyList<PaperSourceOption> sources)
+        {
+            PaperSources = sources;
+            _selectedPaperSource = sources.First(source => source.RawKind == _paperSource);
+            OnPropertyChanged(nameof(SelectedPaperSource));
         }
 
-        public void VoidOnClickBtnApplyAllSettings() {
-
-            //notify if service is not running
-            ServiceUtils.ServiceStatus ssServiceStatus = ServiceUtils.SsGetServiceStatus(ServiceConstants.strServiceName);
-            if (ssServiceStatus != ServiceUtils.ServiceStatus.Running) {
-                //service is not running, alert and abort
-                StrTextApplyResult = "Can not apply settings when service is not running. Please start the service first.";
-
-                //make this text only display for 5 sec
-                Task.Factory.StartNew(() =>
-                {
-                    Thread.Sleep(5000);
-                    StrTextApplyResult = "";
-
-                });
+        private async void SelectImage()
+        {
+            var dialog = new OpenFileDialog
+            {
+                Filter = "BMP images (*.bmp)|*.bmp",
+                DefaultExt = ".bmp",
+            };
+            if (dialog.ShowDialog() != true)
+            {
                 return;
             }
 
-            if (_bSettingsEnabled != _bSettingsEnabled_Original) {
-
-                VoidApplyEnabledSettings();
-                VoidUpdateText_ApplyResult();
+            string path = dialog.FileName;
+            SetBusy(true);
+            Message = "Reading the image...";
+            try
+            {
+                PrintImage image = await Task.Run(() => PrintImageLoader.Load(path));
+                _newImage = ImageSelection.Custom(image);
+                OnPropertyChanged(nameof(ImageName));
+                OnEdited();
             }
-
-            if (_strUnsaved_New_PrinterName != null && !_strUnsaved_New_PrinterName.Equals("")) {
-
-                VoidApplyPrinterNameSettings();
-                VoidUpdateText_ApplyResult();
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is InvalidDataException)
+            {
+                Message = "The image could not be read. " + e.Message;
             }
-
-            if (_pendingPaperSourceRawKind.HasValue) {
-
-                VoidApplyPaperSourceSettings();
-                VoidUpdateText_ApplyResult();
-            }
-
-            if (_intSettingsInterval != _intSettingsInterval_Original || bIfSettingsIntervalUsesDefaultValue) {
-
-                VoidApplyIntervalSettings();
-                
-                VoidUpdateText_ApplyResult();
-            }
-
-            if (_strUnsaved_New_SettingsImagePath != null && !_strUnsaved_New_SettingsImagePath.Equals("")) {
-
-                VoidApplyBmpPathSettings();
-                VoidUpdateText_ApplyResult();
+            finally
+            {
+                SetBusy(false);
             }
         }
 
-        private void VoidOnClickBtnDiscardChanges() {
-
-            _bSettingsEnabled = _bSettingsEnabled_Original;
-            VoidResetPrinterNameSingleton();
-            _strUnsaved_New_PrinterName = null;
-            _intSettingsInterval = _intSettingsInterval_Original;
-            _strUnsaved_New_SettingsImagePath = null;
-            _pendingPaperSourceRawKind = null;
-
-            string printerNameForSources = (!string.IsNullOrEmpty(_strPrinterName) && !_strPrinterName.Equals("(Not set)", StringComparison.Ordinal)) ? _strPrinterName : null;
-            VoidReloadPaperSourcesForPrinter(printerNameForSources, _currentPaperSourceRawKind, false);
-
-            OnPropertyChanged(nameof(BSettingsEnabled));
-            OnPropertyChanged(nameof(StrSettingsPrinterName));
-            OnPropertyChanged(nameof(IntSettingsInterval));
-            OnPropertyChanged(nameof(StrSettingsImagePath));
-
-            CommandManager.InvalidateRequerySuggested();
-
+        private void UseDefaultImage()
+        {
+            _newImage = _current.CustomImage ? ImageSelection.Default : null;
+            OnPropertyChanged(nameof(ImageName));
+            OnEdited();
         }
 
-        private void VoidReloadPaperSourcesForCurrentPrinter() {
-
-            string printerName = null;
-            int? rawKindToSelect = null;
-            bool markAsPending = false;
-
-            if (!string.IsNullOrEmpty(_strUnsaved_New_PrinterName))
+        private async void Apply()
+        {
+            int intervalDays = ParseInterval().GetValueOrDefault(DefaultIntervalDays);
+            var update = new SettingsUpdate
             {
-                printerName = _strUnsaved_New_PrinterName;
-                rawKindToSelect = _pendingPaperSourceRawKind ?? (_selectedPaperSourceOption?.RawKind ?? 0);
-                markAsPending = _pendingPaperSourceRawKind.HasValue;
-            }
-            else if (!string.IsNullOrEmpty(_strPrinterName) && !_strPrinterName.Equals("(Not set)", StringComparison.Ordinal))
-            {
-                printerName = _strPrinterName;
-                rawKindToSelect = _pendingPaperSourceRawKind ?? _currentPaperSourceRawKind;
-                markAsPending = _pendingPaperSourceRawKind.HasValue;
-            }
-
-            VoidReloadPaperSourcesForPrinter(printerName, rawKindToSelect, markAsPending);
-        }
-
-        private void VoidReloadPaperSourcesForPrinter(string printerName, int? rawKindToSelect, bool markAsPendingChange) {
-
-            var options = new ObservableCollection<PaperSourceOption>()
-            {
-                new PaperSourceOption("(Use printer default)", 0)
+                Enabled = _enabled != _current.Enabled ? _enabled : (bool?)null,
+                IntervalDays = intervalDays != _current.IntervalDays ? intervalDays : (int?)null,
+                PrinterName = _newPrinterName,
+                PaperSource = _paperSource != _current.PaperSource ? _paperSource : (int?)null,
+                Image = _newImage,
             };
 
-            if (!string.IsNullOrWhiteSpace(printerName))
+            SetBusy(true);
+            Message = "Saving the settings...";
+
+            ApplySettingsResult result = await _client.ApplySettingsAsync(update);
+            if (result != ApplySettingsResult.Applied)
             {
-                foreach (var option in PrinterCapabilityUtils.GetPaperSources(printerName))
-                {
-                    if (!options.Any(existing => existing.RawKind == option.RawKind))
-                    {
-                        options.Add(option);
-                    }
-                }
-            }
-
-            PaperSourceOption optionToSelect = null;
-
-            if (rawKindToSelect.HasValue)
-            {
-                optionToSelect = options.FirstOrDefault(o => o.RawKind == rawKindToSelect.Value);
-            }
-
-            if (optionToSelect == null && options.Count > 0)
-            {
-                optionToSelect = options[0];
-            }
-
-            _paperSourceOptions = options;
-            _selectedPaperSourceOption = optionToSelect;
-
-            if (markAsPendingChange && optionToSelect != null)
-            {
-                _pendingPaperSourceRawKind = optionToSelect.RawKind;
-            }
-            else if (_pendingPaperSourceRawKind.HasValue && optionToSelect != null && optionToSelect.RawKind == _currentPaperSourceRawKind)
-            {
-                _pendingPaperSourceRawKind = null;
-            }
-            else if (!markAsPendingChange && optionToSelect != null && optionToSelect.RawKind != _currentPaperSourceRawKind)
-            {
-                _pendingPaperSourceRawKind = optionToSelect.RawKind;
-            }
-
-            OnPropertyChanged(nameof(PaperSourceOptions));
-            OnPropertyChanged(nameof(SelectedPaperSourceOption));
-            CommandManager.InvalidateRequerySuggested();
-        }
-
-        private void VoidApplyPaperSourceSettings() {
-
-            if (!_pendingPaperSourceRawKind.HasValue)
-            {
+                SetBusy(false);
+                Message = Describe(result);
                 return;
             }
 
-            bApplyPaperSourceSettings_LOCK = true;
-            bApplyResultOK_PaperSource = false;
-
-            string strRequestID = RandomUtils.StrGenerateRandomHexadecimalString(8);
-            string strFinalMsg = IPCClient.StrMessageEncoder(strRequestID, NamedPipeConstants.JobFlag_WriteRegistryPaperSource, _pendingPaperSourceRawKind.Value.ToString());
-            _ = IPCClient.AsyncSendMsgToServerAndDecodeResponse(strRequestID, strFinalMsg, VoidApplyPaperSourceSettings_Callback);
+            // Show what the service stored, and let the rest of the UI catch up.
+            _monitor.RefreshNow();
+            ServiceStatus status = await _client.GetStatusAsync();
+            SetBusy(false);
+            ShowSettings(status);
+            Message = status != null
+                ? "The settings were saved."
+                : "The settings were saved, but the service did not answer afterwards.";
         }
 
-        private void VoidApplyPaperSourceSettings_Callback(int intResult) {
-
-            if (intResult == NamedPipeConstants.intServerResult_SUCCESS && _selectedPaperSourceOption != null)
+        private static string Describe(ApplySettingsResult result)
+        {
+            switch (result)
             {
-                _currentPaperSourceRawKind = _selectedPaperSourceOption.RawKind;
-                _pendingPaperSourceRawKind = null;
-                bApplyResultOK_PaperSource = true;
+                case ApplySettingsResult.InvalidValue:
+                    return "The service did not accept one of the values. Nothing was changed.";
+                case ApplySettingsResult.PrinterUnavailable:
+                    return "The service cannot find this printer. Printers added only for your user account " +
+                        "cannot be used by the service; add the printer for all users. Nothing was changed.";
+                case ApplySettingsResult.StorageError:
+                    return "The service could not save the settings.";
+                case ApplySettingsResult.NotConnected:
+                    return "Cannot connect to the Printhead Maintainer service. Nothing was changed.";
+                default:
+                    return "The service could not apply the settings.";
             }
-
-            bApplyPaperSourceSettings_LOCK = false;
-            VoidUpdateText_ApplyResult();
-            CommandManager.InvalidateRequerySuggested();
         }
-
-        private void VoidUpdateText_ApplyResult() {
-
-            if (bApplyEnabledSettings_LOCK || bApplyPrinterNameSettings_LOCK || bApplyIntervalSettings_LOCK || bApplyBmpPathSettings_LOCK || bApplyPaperSourceSettings_LOCK)
-            {
-
-                StrTextApplyResult = "Sending setting value to the service, please wait...";
-            }
-            else {
-                //all action finished, now check result
-
-                if (bApplyResultOK_Enabled && bApplyResultOK_PrinterName && bApplyResultOK_Interval && bApplyResultOK_BmpPath && bApplyResultOK_PaperSource)
-                {
-                    //all action success
-                    StrTextApplyResult = "All action finished sucessfully.";
-                }
-                else {
-                    //some action went wrong
-                    StrTextApplyResult = "Some settings can not be changed.";
-                }
-
-                
-                Mediator.Notify("UpdateFooter", "");
-                //make this text only display for 5 sec
-                Task.Factory.StartNew(() =>
-                {
-                    Thread.Sleep(5000);
-                    StrTextApplyResult = "";
-                    
-                });
-            }
-        
-        
-        
-        }
-
-    }   
+    }
 }

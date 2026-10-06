@@ -16,7 +16,9 @@
 * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 * 
 */
+using System.Collections.Generic;
 using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 namespace PrintheadMaintainerUI.ViewModels
 {
@@ -24,12 +26,21 @@ namespace PrintheadMaintainerUI.ViewModels
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
-        protected void OnPropertyChanged(string propertyName)
+        /// <summary>Stores the value and raises PropertyChanged if it changed.</summary>
+        protected bool SetProperty<T>(ref T field, T value, [CallerMemberName] string propertyName = null)
         {
-            
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            if (EqualityComparer<T>.Default.Equals(field, value))
+            {
+                return false;
+            }
+            field = value;
+            OnPropertyChanged(propertyName);
+            return true;
         }
 
-        
+        protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
     }
 }

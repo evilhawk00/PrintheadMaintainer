@@ -16,69 +16,98 @@
 * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 * 
 */
+using PrintheadMaintainerUI.NamedPipeClient;
+using PrintheadMaintainerUI.Notifications;
+using PrintheadMaintainerUI.Status;
+using PrintheadMaintainerUI.ViewModels;
+using System;
+using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows;
 
 namespace PrintheadMaintainerUI
 {
-    /// <summary>
-    /// App.xaml 的互動邏輯
-    /// </summary>
     public partial class App : Application
     {
-        #pragma warning disable IDE0052
-        private static Mutex _mutex = null;
-        #pragma warning restore IDE0052
-        private EventWaitHandle _eventWaitHandle;
+        // One instance per user session. Starting the program again shows the running instance.
+        private const string InstanceMutexName = "PrintheadMaintainer";
+        private const string ShowWindowEventName = "{2C4150D2-F22B-4F1D-97FC-7B68EE70FEA6}";
 
-        public bool bStartupMinimized = false;
+        // Passed by the autostart entry: start in the notification area without showing the window.
+        private const string SilentArgument = "/silent";
+
+        private Mutex _instanceMutex;
+        private EventWaitHandle _showWindowEvent;
+        private RegisteredWaitHandle _showWindowWait;
+        private StatusNotifier _notifier;
+        private MainWindow _window;
+
         protected override void OnStartup(StartupEventArgs e)
         {
-            const string strAppName = "PrintheadMaintainer";
-            const string strUniqueEventName = "{2C4150D2-F22B-4F1D-97FC-7B68EE70FEA6}";
+            base.OnStartup(e);
 
-            bool bCreatedNew;
-
-            _mutex = new Mutex(true, strAppName, out bCreatedNew);
-            _eventWaitHandle = new EventWaitHandle(false, EventResetMode.AutoReset, strUniqueEventName);
-
-
-            for (int i = 0; i != e.Args.Length; ++i)
+            _instanceMutex = new Mutex(false, InstanceMutexName, out bool firstInstance);
+            if (!firstInstance)
             {
-                if (e.Args[i] == "/silent")
-                {
-                    bStartupMinimized = true;
-                }
-            }
-
-            if (bCreatedNew)
-            {
-                //create a thread to wait for the event
-                Thread thread = new Thread(
-                    () =>
-                    {
-                        while (_eventWaitHandle.WaitOne())
-                        {
-                            _ = Current.Dispatcher.BeginInvoke(
-                                (System.Action)(() => ((MainWindow)Current.MainWindow).Void_Public_Restore_Window()));
-                        }
-                    });
-
-                //Mark it as background otherwise it will prevent app from exiting.
-                thread.IsBackground = true;
-
-                thread.Start();
+                ShowRunningInstance();
+                Shutdown();
                 return;
             }
 
-            //Tell other instance to bring window to front.
-            _ = _eventWaitHandle.Set();
+            // Created right away, so that a second start while this one is still starting is not
+            // lost: the event stays set until the wait below is registered.
+            _showWindowEvent = new EventWaitHandle(false, EventResetMode.AutoReset, ShowWindowEventName);
 
-            //Terminate this instance.
-            Shutdown();
+            // The window only hides when closed; the program ends from the tray icon menu.
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
-            base.OnStartup(e);
+            var client = new ServiceClient();
+            var monitor = new StatusMonitor(client);
+            _window = new MainWindow(new MainViewModel(client, monitor));
+            MainWindow = _window;
+            _notifier = new StatusNotifier(monitor);
+            _notifier.OpenRequested += (sender, args) => _window.ShowFromTray();
+
+            _showWindowWait = ThreadPool.RegisterWaitForSingleObject(_showWindowEvent,
+                (state, timedOut) => Dispatcher.BeginInvoke(new Action(() => _window.ShowFromTray())),
+                null, Timeout.Infinite, false);
+
+            if (!e.Args.Contains(SilentArgument))
+            {
+                _window.ShowFromTray();
+            }
+            monitor.Start();
         }
 
+        protected override void OnExit(ExitEventArgs e)
+        {
+            _showWindowWait?.Unregister(null);
+            _showWindowEvent?.Dispose();
+            _notifier?.Dispose();
+            _window?.RemoveTrayIcon();
+            _instanceMutex?.Dispose();
+            base.OnExit(e);
+        }
+
+        private static void ShowRunningInstance()
+        {
+            if (EventWaitHandle.TryOpenExisting(ShowWindowEventName, out EventWaitHandle showWindowEvent))
+            {
+                using (showWindowEvent)
+                {
+                    // This process was started by the user, so it may hand the foreground to the
+                    // running instance; otherwise its window could not come to the front.
+                    AllowSetForegroundWindow(AnyProcess);
+                    showWindowEvent.Set();
+                }
+            }
+        }
+
+        private const int AnyProcess = -1;
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool AllowSetForegroundWindow(int processId);
     }
 }

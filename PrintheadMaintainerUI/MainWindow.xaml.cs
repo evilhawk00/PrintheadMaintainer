@@ -16,191 +16,135 @@
 * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 * 
 */
+using PrintheadMaintainerUI.Enums;
+using PrintheadMaintainerUI.ViewModels;
 using System;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Forms;
-using System.ComponentModel;
-using System.Threading;
-using PrintheadMaintainerUI.Threads;
-using PrintheadMaintainerUI.Mediators;
+using Forms = System.Windows.Forms;
 
 namespace PrintheadMaintainerUI
 {
-    /// <summary>
-    /// MainWindow.xaml 的互動邏輯
-    /// </summary>
     public partial class MainWindow : Window
     {
+        // Windows does not accept longer tooltips for notification area icons.
+        private const int MaxTrayTextLength = 63;
 
-        private bool bCloseApplication = false;
+        private readonly MainViewModel _viewModel;
+        private readonly Forms.NotifyIcon _trayIcon;
+        private bool _exiting;
 
-        private readonly NotifyIcon niNotifyIcon = new NotifyIcon();
-
-        public MainWindow()
+        public MainWindow(MainViewModel viewModel)
         {
             InitializeComponent();
+            _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
+            DataContext = viewModel;
+            titleBar.MouseLeftButtonDown += (sender, e) => DragMove();
 
-            bool bStartMinimized = (System.Windows.Application.Current as App).bStartupMinimized;
+            _trayIcon = CreateTrayIcon();
+            UpdateTrayIcon();
+            _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+        }
+
+        /// <summary>
+        /// Shows the window and brings it to the front. A hidden window already shows the home page;
+        /// a visible one keeps its page, so that unsaved settings are not lost.
+        /// </summary>
+        public void ShowFromTray()
+        {
+            Show();
             WindowState = WindowState.Normal;
-            if (bStartMinimized)
-            {
-                Hide();
-            }
-            else {
-                Show();
-            }
-
-
-            titleBar.MouseLeftButtonDown += (o, e) => DragMove();
-
-            VoidCreateTrayIcon();
-
-            Mediator.Subscribe("TrayOK", Callback_ChangeTrayIcon_OK);
-            Mediator.Subscribe("TrayWarning", Callback_ChangeTrayIcon_Warning);
-            Mediator.Subscribe("TrayError", Callback_ChangeTrayIcon_Error);
-            Mediator.Subscribe("TrayDefault", Callback_ChangeTrayIcon_Default);
-
-            //start service query thread
-            _ = ThreadPool.QueueUserWorkItem(delegate
-            {
-                RealtimeStatusUpdater.VoidSyncLoopRealtimeStatusUpdater();
-            }, null);
-
-
+            Activate();
         }
 
-        private void Callback_ChangeTrayIcon_OK(object obj)
+        /// <summary>Removes the notification area icon; called when the program ends.</summary>
+        public void RemoveTrayIcon()
         {
-            niNotifyIcon.Icon = Properties.Resources.Icon_Green;
+            _trayIcon.Visible = false;
+            _trayIcon.Dispose();
         }
-
-        private void Callback_ChangeTrayIcon_Warning(object obj)
-        {
-            niNotifyIcon.Icon = Properties.Resources.Icon_Orange;
-        }
-
-        private void Callback_ChangeTrayIcon_Error(object obj)
-        {
-            niNotifyIcon.Icon = Properties.Resources.Icon_Red;
-        }
-        private void Callback_ChangeTrayIcon_Default(object obj)
-        {
-            niNotifyIcon.Icon = Properties.Resources.Icon_Blue;
-        }
-
 
         protected override void OnClosing(CancelEventArgs e)
         {
-            //If set cancel to true will cancel the close request, handle here to prevent user close from taskbar
-            if (!bCloseApplication)
+            // Closing the window, for example from the taskbar, only hides it.
+            if (!_exiting)
             {
                 e.Cancel = true;
-                Hide();
-
+                HideToTray();
             }
-            else {
-                
-                e.Cancel = false;
-            }
-
             base.OnClosing(e);
         }
 
-        private void VoidCreateTrayIcon()
+        private Forms.NotifyIcon CreateTrayIcon()
         {
-
-            ContextMenu contextMenu1;
-            MenuItem menuItem1;
-
-            contextMenu1 = new ContextMenu();
-            menuItem1 = new MenuItem();
-
-            MenuItem menuItem2 = new MenuItem
+            var menu = new Forms.ContextMenu(new[]
             {
-                Index = 0,
-                Text = "S&how Window"
-            };
-            menuItem2.Click += new EventHandler(VoidRestoreWindow);
+                new Forms.MenuItem("S&how Window", (sender, e) => ShowFromTray()),
+                new Forms.MenuItem("E&xit", (sender, e) => Exit()),
+            });
+            var trayIcon = new Forms.NotifyIcon { ContextMenu = menu, Visible = true };
+            trayIcon.DoubleClick += (sender, e) => ShowFromTray();
+            return trayIcon;
+        }
 
-            // Initialize contextMenu1
-            contextMenu1.MenuItems.AddRange(new MenuItem[] { menuItem1, menuItem2 });
+        private void Exit()
+        {
+            _exiting = true;
+            Application.Current.Shutdown();
+        }
 
-            // Initialize menuItem1
-            menuItem1.Index = 1;
-            menuItem1.Text = "E&xit";
-            menuItem1.Click += new EventHandler(VoidCloseApplication);
-            niNotifyIcon.ContextMenu = contextMenu1;
+        private void HideToTray()
+        {
+            Hide();
+            _viewModel.ShowHome(); // leaving the print page also frees its preview image
+        }
 
-            niNotifyIcon.Icon = Properties.Resources.Icon_Blue;
+        private void OnViewModelPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(MainViewModel.State) || e.PropertyName == nameof(MainViewModel.StatusTitle))
+            {
+                UpdateTrayIcon();
+            }
+        }
 
-            niNotifyIcon.Text = "Printhead Maintainer";
+        private void UpdateTrayIcon()
+        {
+            System.Drawing.Icon previous = _trayIcon.Icon;
+            switch (_viewModel.State)
+            {
+                case ServiceState.OK:
+                    _trayIcon.Icon = Properties.Resources.Icon_Green;
+                    break;
+                case ServiceState.Warning:
+                    _trayIcon.Icon = Properties.Resources.Icon_Orange;
+                    break;
+                case ServiceState.Error:
+                    _trayIcon.Icon = Properties.Resources.Icon_Red;
+                    break;
+                default:
+                    _trayIcon.Icon = Properties.Resources.Icon_Blue;
+                    break;
+            }
+            previous?.Dispose(); // every read of a resource creates a new icon
 
-
-            niNotifyIcon.Visible = true;
-            niNotifyIcon.DoubleClick +=
-                delegate (object sender, EventArgs args)
-                {
-                    VoidRestoreWindow(sender, args);
-
-                };
-
+            string text = "Printhead Maintainer - " + _viewModel.StatusTitle;
+            _trayIcon.Text = text.Length > MaxTrayTextLength ? text.Substring(0, MaxTrayTextLength) : text;
         }
 
         private void MainWindow_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            _ = MainWindowGrid.Focus();
+            MainWindowGrid.Focus();
         }
 
-        private void VoidCloseApplication(object Sender, EventArgs e)
+        private void HideToTray_Click(object sender, RoutedEventArgs e)
         {
-
-            bCloseApplication = true;
-            //closes the application.
-            if (niNotifyIcon != null)
-            {
-
-                niNotifyIcon.Icon = null;
-                niNotifyIcon.Visible = false;
-                niNotifyIcon.Dispose();
-            }
-            Close();
+            HideToTray();
         }
 
-        public void Void_Public_Restore_Window()
-        {
-            VoidRestoreWindow(null, null);
-        }
-
-        private void VoidRestoreWindow(object Sender, EventArgs e)
-        {
-            //switch back to home first
-            Mediator.Notify("SwitchToHome", "");
-
-            Show();
-            WindowState = WindowState.Normal;
-
-            //make this window to top
-            _ = Activate();
-            
-        }
-
-        private void VoidMinimizeWindowToTray(object sender, RoutedEventArgs e) {
-
-            Hide();
-            WindowState = WindowState.Minimized;
-            //free preview image view in PrintNowViewModel
-            Mediator.Notify("FreeImgPreview", "");
-            
-
-        }
-
-        private void VoidMinimizeWindow(object sender, RoutedEventArgs e)
+        private void Minimize_Click(object sender, RoutedEventArgs e)
         {
             WindowState = WindowState.Minimized;
-
         }
-
     }
-
 }

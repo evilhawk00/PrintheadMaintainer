@@ -37,7 +37,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
         <DockPanel Grid.Row="0" HorizontalAlignment="Stretch"  LastChildFill="True" Margin="0,0,0,0" VerticalAlignment="Stretch">
-            <Button VerticalAlignment="Stretch" HorizontalAlignment="Left" Height="47" Width="47" Command="{Binding SwitchToHomeView}" Style="{StaticResource MinimizeStyle}">
+            <Button VerticalAlignment="Stretch" HorizontalAlignment="Left" Height="47" Width="47" Command="{Binding BackCommand}" Style="{StaticResource MinimizeStyle}">
                 <Image Source="{StaticResource BackArrow_Icon}" Height="18" Width="18"/>
 
             </Button>
@@ -74,16 +74,16 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
             <TextBlock FontWeight="Medium" FontSize="17" Grid.Row="4" Grid.Column="1" Margin="0,0,0,12" TextWrapping="Wrap" Text="Printing Interval" VerticalAlignment="Top" HorizontalAlignment="Left"/>
             <TextBlock FontWeight="Medium" FontSize="17" Grid.Row="5" Grid.Column="1" Margin="0,0,0,12" TextWrapping="Wrap" Text="Image For Printing" VerticalAlignment="Top" HorizontalAlignment="Left"/>
 
-            <CheckBox IsChecked="{Binding BSettingsEnabled}" Margin="0,0,0,12" Grid.Row="1" Grid.Column="3" VerticalAlignment="Top" HorizontalAlignment="Center"/>
+            <CheckBox IsChecked="{Binding Enabled}" IsEnabled="{Binding IsEditable}" Margin="0,0,0,12" Grid.Row="1" Grid.Column="3" VerticalAlignment="Top" HorizontalAlignment="Center"/>
 
 
 
-            <TextBlock Text="{Binding StrSettingsPrinterName}" Grid.Column="2" Grid.Row="2" FontSize="17" Margin="0,0,16,12" VerticalAlignment="Top" TextTrimming="CharacterEllipsis"/>
-            <Button Content="Select" Grid.Column="3" Grid.Row="2" FontSize="13" FontWeight="SemiBold" Style="{StaticResource LightButtonStyle}" Margin="0,0,0,12" VerticalAlignment="Top" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="30" Width="auto" Command="{Binding SwitchToChoosePrinterView}"/>
+            <TextBlock Text="{Binding PrinterName}" Grid.Column="2" Grid.Row="2" FontSize="17" Margin="0,0,16,12" VerticalAlignment="Top" TextTrimming="CharacterEllipsis"/>
+            <Button Content="Select" Grid.Column="3" Grid.Row="2" FontSize="13" FontWeight="SemiBold" Style="{StaticResource LightButtonStyle}" Margin="0,0,0,12" VerticalAlignment="Top" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Height="30" Width="auto" Command="{Binding SelectPrinterCommand}"/>
 
             <TextBlock FontWeight="Medium" FontSize="17" Grid.Row="3" Grid.Column="1" Margin="0,0,0,12" TextWrapping="Wrap" Text="Paper Source" VerticalAlignment="Top" HorizontalAlignment="Left"/>
-            <ComboBox Grid.Row="3" Grid.Column="2" ItemsSource="{Binding PaperSourceOptions}" SelectedItem="{Binding SelectedPaperSourceOption, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" DisplayMemberPath="DisplayName" Margin="0,0,16,12" VerticalAlignment="Top" HorizontalAlignment="Stretch"/>
-            <Button Content="Refresh" Grid.Column="3" Grid.Row="3" FontSize="13" FontWeight="SemiBold" Style="{StaticResource LightButtonStyle}" Margin="0,0,0,12" HorizontalAlignment="Stretch" Width="auto" Height="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Top" Command="{Binding CmdRefreshPaperSources}"/>
+            <ComboBox Grid.Row="3" Grid.Column="2" IsEnabled="{Binding IsEditable}" ItemsSource="{Binding PaperSources}" SelectedItem="{Binding SelectedPaperSource}" DisplayMemberPath="DisplayName" Margin="0,0,16,12" VerticalAlignment="Top" HorizontalAlignment="Stretch"/>
+            <Button Content="Refresh" Grid.Column="3" Grid.Row="3" FontSize="13" FontWeight="SemiBold" Style="{StaticResource LightButtonStyle}" Margin="0,0,0,12" HorizontalAlignment="Stretch" Width="auto" Height="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Top" Command="{Binding RefreshPaperSourcesCommand}"/>
 
             <Grid Grid.Row="4" Grid.Column="3" Margin="0,0,0,12">
                 <Grid.ColumnDefinitions>
@@ -95,7 +95,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
-                <TextBox Grid.Row="0" Text="{Binding IntSettingsInterval}" Grid.Column="0" Height="30" Margin="0,0,0,12" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" PreviewTextInput="PreviewTextInput_NumberOnly" TextChanged="TextChanged_RemoveSpace" InputMethod.IsInputMethodEnabled="False"/>
+                <TextBox Grid.Row="0" Text="{Binding IntervalDays, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsEditable}" Grid.Column="0" Height="30" Margin="0,0,0,12" VerticalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" PreviewTextInput="PreviewTextInput_NumberOnly" InputMethod.IsInputMethodEnabled="False"/>
                 <TextBlock Grid.Row="0" Grid.Column="1" Text="Day(s)" Margin="3,0,0,12" FontSize="17" VerticalAlignment="Center"/>
                 
             </Grid>
@@ -104,8 +104,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
 
-            <TextBlock Grid.Column="2" Grid.Row="5" Text="{Binding StrSettingsImagePath}" FontSize="17" Margin="0,0,16,12" VerticalAlignment="Top" HorizontalAlignment="Left" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"/>
-            <Button Content="Select" Grid.Column="3" Grid.Row="5" FontSize="13" FontWeight="SemiBold" Style="{StaticResource LightButtonStyle}" Margin="0,0,0,12" HorizontalAlignment="Stretch" Width="auto" Height="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Top" Command="{Binding CmdSelectBmp}"/>
+            <StackPanel Grid.Column="2" Grid.Row="5" Margin="0,0,16,12" VerticalAlignment="Top" HorizontalAlignment="Left">
+                <TextBlock Text="{Binding ImageName}" FontSize="17" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"/>
+                <Button Content="Use Default Image" FontSize="13" FontWeight="SemiBold" Style="{StaticResource LightButtonStyle}" Margin="0,8,0,0" HorizontalAlignment="Left" Width="140" Height="30" Command="{Binding UseDefaultImageCommand}"/>
+            </StackPanel>
+            <Button Content="Select" Grid.Column="3" Grid.Row="5" FontSize="13" FontWeight="SemiBold" Style="{StaticResource LightButtonStyle}" Margin="0,0,0,12" HorizontalAlignment="Stretch" Width="auto" Height="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Top" Command="{Binding SelectImageCommand}"/>
             
 
             
@@ -121,9 +124,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
                 <ColumnDefinition Width="20"/>
             </Grid.ColumnDefinitions>
 
-            <Button Content="Apply" FontSize="14" FontWeight="SemiBold" Grid.Column="1" Style="{StaticResource DarkButtonStyle}" HorizontalAlignment="Stretch" Margin="0,0,0,0" VerticalAlignment="Center" Height="33.5" Width="auto" Command="{Binding CmdApplySettings}"/>
-            <Button Content="Cancel" FontSize="14" FontWeight="SemiBold" Grid.Column="3" Style="{StaticResource LightButtonStyle}" HorizontalAlignment="Stretch" Margin="0,0,0,0" VerticalAlignment="Center" Height="33.5" Width="auto" Command="{Binding CmdDiscardChanges}"/>
-            <TextBlock HorizontalAlignment="Left" FontSize="12" Margin="20,0,20,0" TextWrapping="Wrap" Text="{Binding StrTextApplyResult}" VerticalAlignment="Center"/>
+            <Button Content="Apply" FontSize="14" FontWeight="SemiBold" Grid.Column="1" Style="{StaticResource DarkButtonStyle}" HorizontalAlignment="Stretch" Margin="0,0,0,0" VerticalAlignment="Center" Height="33.5" Width="auto" Command="{Binding ApplyCommand}"/>
+            <Button Content="Cancel" FontSize="14" FontWeight="SemiBold" Grid.Column="3" Style="{StaticResource LightButtonStyle}" HorizontalAlignment="Stretch" Margin="0,0,0,0" VerticalAlignment="Center" Height="33.5" Width="auto" Command="{Binding DiscardCommand}"/>
+            <TextBlock HorizontalAlignment="Left" FontSize="12" Margin="20,0,20,0" TextWrapping="Wrap" Text="{Binding Message}" VerticalAlignment="Center"/>
 
 
         </Grid>

@@ -18,42 +18,42 @@
 */
 using PrintheadMaintainerUI.Commands;
 using PrintheadMaintainerUI.Interfaces;
-using PrintheadMaintainerUI.Mediators;
+using System;
+using System.ComponentModel;
 using System.Diagnostics;
+using System.Reflection;
 using System.Windows.Input;
 
 namespace PrintheadMaintainerUI.ViewModels
 {
-    public class AboutViewModel : ViewModelBase, IPageViewModel
+    public sealed class AboutViewModel : ViewModelBase
     {
-        private ICommand _switchToHomeView;
+        private const string ProjectPage = "https://github.com/evilhawk00/PrintheadMaintainer";
 
-        public ICommand SwitchToHomeView
+        public AboutViewModel(INavigator navigator)
         {
-            get
+            BackCommand = new RelayCommand(navigator.ShowHome);
+            OpenProjectPageCommand = new RelayCommand(OpenProjectPage);
+        }
+
+        public ICommand BackCommand { get; }
+
+        public ICommand OpenProjectPageCommand { get; }
+
+        public string Version { get; } = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+
+        private static void OpenProjectPage()
+        {
+            try
             {
-                return _switchToHomeView ?? (_switchToHomeView = new RelayCommand(x =>
+                using (Process.Start(ProjectPage))
                 {
-                    Mediator.Notify("SwitchToHome", "");
-                }));
+                }
+            }
+            catch (Exception e) when (e is Win32Exception || e is InvalidOperationException)
+            {
+                // No browser is set up; the address is shown on the page.
             }
         }
-
-        public ICommand CmdOpenGithubProjectPage
-        {
-            get
-            {
-                return new RelayCommand(x =>
-                {
-                    VoidOpenGithubProjectPage();
-                });
-            }
-        }
-
-        private void VoidOpenGithubProjectPage()
-        {
-            _ = Process.Start("https://github.com/evilhawk00/PrintheadMaintainer");
-        }
-
     }
 }

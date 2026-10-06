@@ -1,41 +1,39 @@
-﻿//Solution for communicating between viewmodels is adopted from the method provided by Andy at technical-recipes.com
-//Source: https://www.technical-recipes.com/2018/navigating-between-views-in-wpf-mvvm/
-
-using PrintheadMaintainerUI.Events;
+﻿/*
+*
+* Copyright (C) 2026  YAN-LIN, CHEN
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*
+*/
 using System;
 using System.Windows.Input;
 
 namespace PrintheadMaintainerUI.Commands
 {
-    public class RelayCommand<T> : ICommand
+    /// <summary>
+    /// A command that calls the given methods. WPF asks CanExecute again after user input; call
+    /// CommandManager.InvalidateRequerySuggested after other changes, such as a finished request.
+    /// </summary>
+    public sealed class RelayCommand : ICommand
     {
-        private readonly Predicate<T> _canExecute;
-        private readonly Action<T> _execute;
+        private readonly Action _execute;
+        private readonly Func<bool> _canExecute;
 
-        public RelayCommand(Action<T> execute)
-           : this(execute, null)
+        public RelayCommand(Action execute, Func<bool> canExecute = null)
         {
-            _execute = execute;
-        }
-
-        public RelayCommand(Action<T> execute, Predicate<T> canExecute)
-        {
-            if (execute == null)
-            {
-                throw new ArgumentNullException("execute");
-            }
-            _execute = execute;
+            _execute = execute ?? throw new ArgumentNullException(nameof(execute));
             _canExecute = canExecute;
-        }
-
-        public bool CanExecute(object parameter)
-        {
-            return _canExecute == null || _canExecute((T)parameter);
-        }
-
-        public void Execute(object parameter)
-        {
-            _execute((T)parameter);
         }
 
         public event EventHandler CanExecuteChanged
@@ -43,57 +41,15 @@ namespace PrintheadMaintainerUI.Commands
             add { CommandManager.RequerySuggested += value; }
             remove { CommandManager.RequerySuggested -= value; }
         }
-    }
-    public class RelayCommand : ICommand
-    {
-        private readonly Predicate<object> _canExecute;
-        private readonly Action<object> _execute;
-
-        public RelayCommand(Action<object> execute)
-           : this(execute, null)
-        {
-            _execute = execute;
-        }
-
-        public RelayCommand(Action<object> execute, Predicate<object> canExecute)
-        {
-            if (execute == null)
-            {
-                throw new ArgumentNullException("execute");
-            }
-            _execute = execute;
-            _canExecute = canExecute;
-        }
 
         public bool CanExecute(object parameter)
         {
-            return _canExecute == null || _canExecute(parameter);
+            return _canExecute == null || _canExecute();
         }
 
         public void Execute(object parameter)
         {
-            _execute(parameter);
-        }
-
-        public event EventHandler CanExecuteChanged
-        {
-            add
-            {
-                CommandManager.RequerySuggested += value;
-                CanExecuteChangedInternal += value;
-            }
-            remove
-            {
-                CommandManager.RequerySuggested -= value;
-                CanExecuteChangedInternal -= value;
-            }
-        }
-
-        private event EventHandler CanExecuteChangedInternal;
-
-        public void RaiseCanExecuteChanged()
-        {
-            CanExecuteChangedInternal.Raise(this);
+            _execute();
         }
     }
 }

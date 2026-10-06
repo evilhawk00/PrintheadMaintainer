@@ -23,7 +23,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     xmlns:Converters="clr-namespace:PrintheadMaintainerUI.ValueConverters"
     xmlns:local="clr-namespace:PrintheadMaintainerUI"
     xmlns:views="clr-namespace:PrintheadMaintainerUI.Views"
-    xmlns:viewmodels="clr-namespace:PrintheadMaintainerUI.ViewModels"
         
     Title="Printhead Maintainer" 
     Height="550" 
@@ -37,11 +36,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         <Converters:ServiceStateToWindowIconConverter x:Key="ServiceStateToWindowIconConverter"/>
     </Window.Resources>
     <Window.Icon>
-        <Binding Path="ServiceStateForConverter" Converter="{StaticResource ServiceStateToWindowIconConverter}"/>
+        <Binding Path="State" Converter="{StaticResource ServiceStateToWindowIconConverter}"/>
     </Window.Icon>
-    <Window.DataContext>
-        <viewmodels:ViewModelMainWindow />
-    </Window.DataContext>
     
     <Border Margin="10">
         <Border.Effect>
@@ -70,8 +66,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
                             Foreground="Black"
                             
                             FontSize="20" />
-                <Button Margin="0,0,1,0" Width="48" Height="Auto" HorizontalAlignment="Right" DockPanel.Dock="Right" FontSize="20" Style="{StaticResource ExitStyle}" Content="x" Click="VoidMinimizeWindowToTray"/>
-                <Button Margin="0,0,1,0"  Width="48" Height="Auto" HorizontalAlignment="Right" DockPanel.Dock="Right" FontSize="20" Style="{StaticResource MinimizeStyle}" Content="-" Click="VoidMinimizeWindow"/>
+                <Button Margin="0,0,1,0" Width="48" Height="Auto" HorizontalAlignment="Right" DockPanel.Dock="Right" FontSize="20" Style="{StaticResource ExitStyle}" Content="x" Click="HideToTray_Click"/>
+                <Button Margin="0,0,1,0"  Width="48" Height="Auto" HorizontalAlignment="Right" DockPanel.Dock="Right" FontSize="20" Style="{StaticResource MinimizeStyle}" Content="-" Click="Minimize_Click"/>
 
             </DockPanel>
 
@@ -79,12 +75,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
 
-            <ContentControl Grid.Row="1" Content="{Binding CurrentPageViewModel}"/>
+            <ContentControl Grid.Row="1" Content="{Binding CurrentPage}"/>
 
 
 
             <Grid Grid.Row="2" VerticalAlignment="Stretch" Background="#cecece">
-                <TextBlock TextAlignment="Left" Text="{Binding StrFooter}" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                <TextBlock TextAlignment="Left" Text="{Binding Footer}" VerticalAlignment="Center" Margin="10,0,0,0"/>
             </Grid>
             
 

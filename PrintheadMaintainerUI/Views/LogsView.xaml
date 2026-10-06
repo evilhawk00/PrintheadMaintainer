@@ -36,7 +36,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
         <DockPanel Grid.Row="0" HorizontalAlignment="Stretch"  LastChildFill="True" Margin="0,0,0,0" VerticalAlignment="Stretch">
-            <Button VerticalAlignment="Stretch" HorizontalAlignment="Left" Height="47" Width="47" Command="{Binding SwitchToHomeView}" Style="{StaticResource MinimizeStyle}">
+            <Button VerticalAlignment="Stretch" HorizontalAlignment="Left" Height="47" Width="47" Command="{Binding BackCommand}" Style="{StaticResource MinimizeStyle}">
                 <Image Source="{StaticResource BackArrow_Icon}" Height="18" Width="18"/>
 
             </Button>
@@ -48,7 +48,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         <Grid Grid.Row="2" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="White">
 
             <ScrollViewer HorizontalAlignment="Stretch" Margin="20,20,20,0" Grid.Row="2" VerticalAlignment="Stretch">
-                <TextBox TextWrapping="Wrap" BorderThickness="0" Background="#f0f6f7" IsReadOnly="True" Text="{Binding StrLogFileText}"/>
+                <TextBox TextWrapping="Wrap" BorderThickness="0" Background="#f0f6f7" IsReadOnly="True" Text="{Binding LogText, Mode=OneWay}"/>
 
 
             </ScrollViewer>
@@ -58,7 +58,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
         <Grid Grid.Row="3" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="White">
 
-            <Button Content="Refresh Log" FontSize="13" FontWeight="SemiBold" Style="{StaticResource LightButtonStyle}" HorizontalAlignment="Left" Margin="20,0,0,0" VerticalAlignment="Center" Height="30" Width="90" Command="{Binding CmdRefreshLog}"/>
+            <Button Content="Refresh Log" FontSize="13" FontWeight="SemiBold" Style="{StaticResource LightButtonStyle}" HorizontalAlignment="Left" Margin="20,0,0,0" VerticalAlignment="Center" Height="30" Width="90" Command="{Binding RefreshCommand}"/>
 
         </Grid>
 
