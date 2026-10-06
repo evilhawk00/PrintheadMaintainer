@@ -227,12 +227,12 @@ namespace Printing
         return std::nullopt;
     }
 
-    FailureReason CheckPrinter(const std::wstring& printerName)
+    PrinterStatus CheckPrinter(const std::wstring& printerName)
     {
         UniquePrinter printer = OpenPrinterByName(printerName);
         if (!printer)
         {
-            return FailureReason::PrinterNotFound;
+            return { FailureReason::PrinterNotFound, false };
         }
 
         std::vector<BYTE> printerInfoBuffer;
@@ -241,14 +241,14 @@ namespace Printing
         });
         if (error != ERROR_SUCCESS)
         {
-            return FailureReason::SpoolerError;
+            return { FailureReason::SpoolerError, false };
         }
 
         const auto* printerInfo = reinterpret_cast<const PRINTER_INFO_2W*>(printerInfoBuffer.data());
-        FailureReason reason = MapStatus(printerInfo->Status, kPrinterStatusErrors);
-        if (reason != FailureReason::None || printerInfo->cJobs == 0)
+        const FailureReason printerFailure = MapStatus(printerInfo->Status, kPrinterStatusErrors);
+        if (printerInfo->cJobs == 0)
         {
-            return reason;
+            return { printerFailure, printerFailure != FailureReason::None };
         }
 
         // Many printers report problems only on the job they are printing. This check is an
@@ -257,22 +257,26 @@ namespace Printing
         DWORD jobCount = 0;
         if (!EnumerateJobs(printer.Get(), jobBuffer, jobCount))
         {
-            return FailureReason::None;
+            return { printerFailure, false };
         }
 
+        // A printer can keep the documents it printed in its queue; they are not waiting.
+        bool documentWaiting = false;
+        FailureReason jobFailure = FailureReason::None;
         const auto* jobs = reinterpret_cast<const JOB_INFO_1W*>(jobBuffer.data());
         for (DWORD i = 0; i < jobCount; ++i)
         {
-            if (jobs[i].Status & JOB_STATUS_PRINTING)
+            documentWaiting = documentWaiting || !(jobs[i].Status & (JOB_STATUS_PRINTED | JOB_STATUS_COMPLETE));
+            if (jobFailure == FailureReason::None && (jobs[i].Status & JOB_STATUS_PRINTING))
             {
-                reason = MapStatus(jobs[i].Status, kJobStatusErrors);
-                if (reason != FailureReason::None)
-                {
-                    return reason;
-                }
+                jobFailure = MapStatus(jobs[i].Status, kJobStatusErrors);
             }
         }
-        return FailureReason::None;
+        if (printerFailure != FailureReason::None)
+        {
+            return { printerFailure, !documentWaiting };
+        }
+        return { jobFailure, false };
     }
 
     SubmitResult SubmitBitmapJob(const std::wstring& printerName, short paperSource,

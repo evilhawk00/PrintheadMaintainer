@@ -122,8 +122,8 @@ namespace PrintheadMaintainerUI.Presentation
                 PrintFailure failure = status.LastScheduledFailure;
                 summary.State = ServiceState.Warning;
                 summary.Title = "Attention required";
-                summary.Problem = "Scheduled printing failed at " + DisplayText.FormatTime(failure.TimeUtc) + ". " +
-                    DisplayText.Describe(failure.Reason) + ".";
+                summary.Problem = "Scheduled printing is failing. " + DisplayText.Describe(failure.Reason) +
+                    " (since " + DisplayText.FormatTime(failure.TimeUtc) + ").";
                 summary.ProblemState = ValueState.Warning;
             }
             else

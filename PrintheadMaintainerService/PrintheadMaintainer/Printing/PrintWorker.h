@@ -40,8 +40,10 @@ enum class ManualPrintRequest
 };
 
 // Runs every print, scheduled or manual, on one thread so that two jobs never overlap.
-// It checks whether a scheduled print is due every 15 minutes and immediately when a manual
-// print is requested. All waits end as soon as the service stop event is signaled.
+// It checks whether a scheduled print is due every 15 minutes, every minute while a due print
+// waits for the printer to become ready or for the problem that made it fail to be fixed, and
+// immediately when a manual print is requested. All waits end as soon as the service stop
+// event is signaled.
 class PrintWorker
 {
 public:
@@ -67,10 +69,13 @@ private:
         bool interrupted = false; // the service is stopping
         FailureReason failure = FailureReason::None;
         bool skipped = false;     // the settings changed during the countdown; nothing was printed
+        bool notReady = false;    // the printer was not ready, so the print was not started at all
+        bool idleReport = false;  // with notReady: the printer reported it itself, see Print
+        bool waiting = false;     // a scheduled print failed recently and is not tried again yet
     };
 
     void Run();
-    void RunPrint(PrintKind kind);
+    JobOutcome RunPrint(PrintKind kind);
     JobOutcome Print(PrintKind kind);
     JobOutcome WaitForJob(const std::wstring& printerName, DWORD jobId);
 
@@ -81,5 +86,9 @@ private:
     UniqueKernelHandle m_manualPrintRequested;
     std::atomic<PrintState> m_state{ PrintState::Idle };
     std::atomic<bool> m_manualPrintPending{ false };
+
+    // Used by the worker thread only.
+    ULONGLONG m_retryTick = 0;                         // after a failed scheduled print, it waits until then
+    FailureReason m_lastProblem = FailureReason::None; // what the last scheduled check found, if anything
     std::thread m_thread;
 };

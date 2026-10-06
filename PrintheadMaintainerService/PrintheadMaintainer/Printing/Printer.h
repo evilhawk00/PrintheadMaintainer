@@ -33,9 +33,16 @@ namespace Printing
     // a printer on another computer (\\host\printer), which would sign in to that host.
     std::optional<std::wstring> FindInstalledPrinter(const std::wstring& printerName);
 
-    // Returns the first problem reported by the printer itself or by a job it is printing,
-    // or FailureReason::None when nothing prevents printing.
-    FailureReason CheckPrinter(const std::wstring& printerName);
+    struct PrinterStatus
+    {
+        FailureReason failure = FailureReason::None;
+        bool idleReport = false; // the printer reported it itself, with no document waiting to print
+    };
+
+    // Returns the first problem reported by the printer itself or by a job it is printing, or
+    // FailureReason::None when nothing prevents printing, and whether the printer reported the
+    // problem itself while no document was waiting to print, so that it cannot be a document's.
+    PrinterStatus CheckPrinter(const std::wstring& printerName);
 
     struct SubmitResult
     {

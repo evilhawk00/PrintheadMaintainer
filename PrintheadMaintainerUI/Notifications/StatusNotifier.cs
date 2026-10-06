@@ -29,9 +29,9 @@ namespace PrintheadMaintainerUI.Notifications
     /// <summary>
     /// Shows Windows notifications for the service's status. The computer may be left alone right
     /// after it starts, so a failed scheduled print must still be noticed when the user comes back:
-    /// - Every failed scheduled print is shown, as a reminder that stays on screen until the user
-    ///   closes it. While it is not resolved, it is shown again every 15 minutes, when the UI
-    ///   starts and when the user returns.
+    /// - A failed scheduled print is shown as a reminder that stays on screen until the user closes
+    ///   it, and again when the service reports a different problem. While it is not resolved, it
+    ///   is shown again every 15 minutes, when the UI starts and when the user returns.
     /// - Each kind of notification replaces the previous one of its kind, so the notification
     ///   center holds only the latest one, and it is removed once a later print succeeds.
     /// Create it on the UI thread.
@@ -110,7 +110,7 @@ namespace PrintheadMaintainerUI.Notifications
                         .SetToastScenario(ToastScenario.Reminder)
                         .AddText("Scheduled printing failed")
                         .AddText(DisplayText.Describe(failure.Reason) + ".")
-                        .AddText("Tried at " + DisplayText.FormatTime(failure.TimeUtc) + ". It will be tried again automatically.")
+                        .AddText("Since " + DisplayText.FormatTime(failure.TimeUtc) + ". It prints automatically once this is fixed.")
                         .AddButton(new ToastButton().SetContent("Open").AddArgument("action", "open"))
                         .AddButton(new ToastButtonDismiss()),
                     ScheduledFailureTag);
