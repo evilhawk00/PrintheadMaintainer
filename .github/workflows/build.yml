@@ -1,0 +1,59 @@
+# Builds the service, the UI and the installer for every push and pull request. The installer and
+# the program files are kept as an artifact of the run.
+name: Build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2022
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: microsoft/setup-msbuild@v2
+
+      # The project uses the Visual Studio 2019 toolset (v142), which Visual Studio 2022 on the
+      # runner does not necessarily include, so the current toolset builds it here.
+      - name: Build the service
+        run: msbuild PrintheadMaintainerService\PrintheadMaintainer.sln -m -p:Configuration=Release -p:Platform=x64 -p:PlatformToolset=v143
+
+      - name: Build the UI
+        run: msbuild PrintheadMaintainerUI\PrintheadMaintainerUI.sln -m -restore -p:Configuration=Release
+
+      - name: Collect the files to install
+        run: |
+          $target = 'PrintheadMaintainerInstaller\InstallationFilesSourceDir'
+          Copy-Item 'PrintheadMaintainerService\x64\Release\PrintheadMaintainSvc.exe' $target
+          Copy-Item 'PrintheadMaintainerUI\bin\Release\PrintheadMaintainer.exe',
+                    'PrintheadMaintainerUI\bin\Release\Microsoft.Toolkit.Uwp.Notifications.dll',
+                    'PrintheadMaintainerUI\bin\Release\System.ValueTuple.dll' $target
+
+      # WiX Toolset 3.14 from its NuGet package, so the build does not depend on what the runner
+      # image has installed.
+      - name: Build the installer
+        run: |
+          $package = Join-Path $env:RUNNER_TEMP 'wix.3.14.1.zip'
+          $wix = Join-Path $env:RUNNER_TEMP 'wix'
+          Invoke-WebRequest 'https://api.nuget.org/v3-flatcontainer/wix/3.14.1/wix.3.14.1.nupkg' -OutFile $package
+          Expand-Archive $package $wix
+          $tools = Join-Path $wix 'tools'
+          msbuild PrintheadMaintainerInstaller\PrintheadMaintainerInstaller.sln -p:Configuration=Release -p:Platform=x64 `
+            "-p:WixToolPath=$tools\" "-p:WixExtDir=$tools\" "-p:WixTargetsPath=$tools\wix.targets" "-p:WixTasksPath=$tools\WixTasks.dll"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PrintheadMaintainer
+          if-no-files-found: error
+          path: |
+            PrintheadMaintainerInstaller/bin/Release/PrintheadMaintainerInstaller.msi
+            PrintheadMaintainerInstaller/InstallationFilesSourceDir/*.exe
+            PrintheadMaintainerInstaller/InstallationFilesSourceDir/*.dll
