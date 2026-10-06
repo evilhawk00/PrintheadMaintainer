@@ -18,57 +18,6 @@
     <ClCompile Include="PrintheadMaintainer.cpp">
       <Filter>來源檔案</Filter>
     </ClCompile>
-    <ClCompile Include="SoftwareSettings\SoftwareSettings.cpp">
-      <Filter>來源檔案</Filter>
-    </ClCompile>
-    <ClCompile Include="Utils\DateTimeUtils.cpp">
-      <Filter>來源檔案</Filter>
-    </ClCompile>
-    <ClCompile Include="Utils\PrinterUtils.cpp">
-      <Filter>來源檔案</Filter>
-    </ClCompile>
-    <ClCompile Include="Utils\RegistryUtils.cpp">
-      <Filter>來源檔案</Filter>
-    </ClCompile>
-    <ClCompile Include="NamedPipeServer\IPCServer.cpp">
-      <Filter>來源檔案</Filter>
-    </ClCompile>
-    <ClCompile Include="Utils\WstringUtils.cpp">
-      <Filter>來源檔案</Filter>
-    </ClCompile>
-    <ClCompile Include="NamedPipeServer\IPCProcessingJob.cpp">
-      <Filter>來源檔案</Filter>
-    </ClCompile>
-    <ClCompile Include="PrintingEntryPoint\PrintingEntryPoint.cpp">
-      <Filter>來源檔案</Filter>
-    </ClCompile>
-    <ClCompile Include="PrintingStatusReporter\PrintingStatusReporter.cpp">
-      <Filter>來源檔案</Filter>
-    </ClCompile>
-    <ClCompile Include="Utils\GetFolderPathUtils.cpp">
-      <Filter>來源檔案</Filter>
-    </ClCompile>
-    <ClCompile Include="Utils\LoggingUtils.cpp">
-      <Filter>來源檔案</Filter>
-    </ClCompile>
-    <ClCompile Include="Utils\FileSizeUtils.cpp">
-      <Filter>來源檔案</Filter>
-    </ClCompile>
-    <ClCompile Include="Utils\WriteFileUtils.cpp">
-      <Filter>來源檔案</Filter>
-    </ClCompile>
-    <ClCompile Include="Utils\EncodingUtils.cpp">
-      <Filter>來源檔案</Filter>
-    </ClCompile>
-    <ClCompile Include="Logging\Logging.cpp">
-      <Filter>來源檔案</Filter>
-    </ClCompile>
-    <ClCompile Include="Utils\LargeIntegerUtils.cpp">
-      <Filter>來源檔案</Filter>
-    </ClCompile>
-    <ClCompile Include="Utils\RandomUtils.cpp">
-      <Filter>來源檔案</Filter>
-    </ClCompile>
     <ClCompile Include="Printing\FailureReason.cpp">
       <Filter>來源檔案</Filter>
     </ClCompile>
@@ -111,57 +60,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="SoftwareSettings\SoftwareSettings.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="Utils\RegistryUtils.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="Utils\PrinterUtils.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="Utils\DateTimeUtils.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="NamedPipeServer\IPCServer.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="Utils\WstringUtils.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="NamedPipeServer\IPCProcessingJob.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="PrintingEntryPoint\PrintingEntryPoint.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="PrintingStatusReporter\PrintingStatusReporter.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="Utils\GetFolderPathUtils.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="Utils\LoggingUtils.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="Utils\FileSizeUtils.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="Utils\WriteFileUtils.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="Utils\EncodingUtils.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="Logging\Logging.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="Utils\LargeIntegerUtils.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="Utils\RandomUtils.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
     <ClInclude Include="Common\WinHandle.h">

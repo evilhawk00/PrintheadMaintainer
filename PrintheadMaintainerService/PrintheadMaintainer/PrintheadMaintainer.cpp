@@ -16,208 +16,111 @@
 * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 *
 */
-#include <iostream>
 #include <Windows.h>
-#include <process.h>
+#include <mutex>
+#include <string>
 
-#include "SoftwareSettings/SoftwareSettings.h"
-#include "PrintingEntryPoint/PrintingEntryPoint.h"
-#include "NamedPipeServer/IPCServer.h"
-#include "Logging/Logging.h"
-#include "Utils/PrinterUtils.h"
-#include "Utils/RegistryUtils.h"
-#include "Utils/DateTimeUtils.h"
+#include "Common/WinHandle.h"
+#include "Ipc/PipeServer.h"
+#include "Logging/ServiceLog.h"
+#include "Printing/PrintWorker.h"
 
-#define SVCNAME L"PrintheadMaintenanceSvc"
+namespace
+{
+    constexpr wchar_t kServiceName[] = L"PrintheadMaintenanceSvc";
+    constexpr DWORD kStartWaitHintMs = 5 * 1000;
+    constexpr DWORD kStopWaitHintMs = 30 * 1000;
 
-SERVICE_STATUS          gSvcStatus;
-SERVICE_STATUS_HANDLE   gSvcStatusHandle;
-HANDLE                  ghSvcStopEvent = NULL;
+    SERVICE_STATUS_HANDLE g_statusHandle = nullptr;
+    std::mutex g_statusMutex;
+    DWORD g_checkPoint = 1;
 
-VOID WINAPI SvcCtrlHandler(DWORD);
-VOID WINAPI SvcMain(DWORD, LPTSTR*);
+    // Lives until the process exits, so the control handler can always signal it.
+    UniqueKernelHandle g_stopEvent;
 
-VOID ReportSvcStatus(DWORD, DWORD, DWORD);
-VOID SvcInit(DWORD, LPTSTR*);
-VOID SvcReportEvent(LPTSTR);
+    // Called from the service thread and from the control handler thread.
+    void ReportStatus(DWORD state, DWORD exitCode = NO_ERROR, DWORD waitHint = 0)
+    {
+        std::lock_guard<std::mutex> lock(g_statusMutex);
 
-unsigned __stdcall ServiceWorkerThread(void* pArguments);
-unsigned __stdcall NamedPipeListenerThread(void* pArguments);
+        SERVICE_STATUS status{};
+        status.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
+        status.dwCurrentState = state;
+        status.dwControlsAccepted = state == SERVICE_RUNNING ? SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN : 0;
+        status.dwWin32ExitCode = exitCode;
+        status.dwWaitHint = waitHint;
+        status.dwCheckPoint = state == SERVICE_RUNNING || state == SERVICE_STOPPED ? 0 : g_checkPoint++;
+        ::SetServiceStatus(g_statusHandle, &status);
+    }
+
+    DWORD WINAPI ControlHandler(DWORD control, DWORD, LPVOID, LPVOID)
+    {
+        switch (control)
+        {
+        case SERVICE_CONTROL_STOP:
+        case SERVICE_CONTROL_SHUTDOWN:
+            ReportStatus(SERVICE_STOP_PENDING, NO_ERROR, kStopWaitHintMs);
+            ::SetEvent(g_stopEvent.Get());
+            return NO_ERROR;
+        case SERVICE_CONTROL_INTERROGATE:
+            return NO_ERROR;
+        default:
+            return ERROR_CALL_NOT_IMPLEMENTED;
+        }
+    }
+
+    void WINAPI ServiceMain(DWORD, LPWSTR*)
+    {
+        g_statusHandle = ::RegisterServiceCtrlHandlerExW(kServiceName, ControlHandler, nullptr);
+        if (g_statusHandle == nullptr)
+        {
+            return;
+        }
+        ReportStatus(SERVICE_START_PENDING, NO_ERROR, kStartWaitHintMs);
+
+        g_stopEvent.Reset(::CreateEventW(nullptr, TRUE, FALSE, nullptr));
+        if (!g_stopEvent)
+        {
+            ReportStatus(SERVICE_STOPPED, ::GetLastError());
+            return;
+        }
+
+        ServiceLog::Write(L"Service started, process " + std::to_wstring(::GetCurrentProcessId()));
+
+        DWORD exitCode = NO_ERROR;
+        {
+            PrintWorker worker(g_stopEvent.Get());
+            PipeServer pipeServer(g_stopEvent.Get(), worker);
+            if (worker.Start() && pipeServer.Start())
+            {
+                ReportStatus(SERVICE_RUNNING);
+            }
+            else
+            {
+                exitCode = ERROR_SERVICE_NO_THREAD;
+                ServiceLog::Write(L"Service could not start its threads");
+                ::SetEvent(g_stopEvent.Get());
+            }
+
+            ::WaitForSingleObject(g_stopEvent.Get(), INFINITE);
+
+            // Both threads end as soon as they notice the stop event; a print in progress is
+            // cancelled and its job removed from the queue.
+            pipeServer.Join();
+            worker.Join();
+        }
+
+        ServiceLog::Write(L"Service stopped");
+        ReportStatus(SERVICE_STOPPED, exitCode);
+    }
+}
 
 int main()
 {
-    wchar_t svc_buf[] = SVCNAME;
-
-    SERVICE_TABLE_ENTRY DispatchTable[] =
-    {
-        { svc_buf, (LPSERVICE_MAIN_FUNCTION)SvcMain },
-        { NULL, NULL }
+    wchar_t serviceName[] = L"PrintheadMaintenanceSvc";
+    const SERVICE_TABLE_ENTRYW dispatchTable[] = {
+        { serviceName, ServiceMain },
+        { nullptr, nullptr },
     };
-
-    if (!StartServiceCtrlDispatcher(DispatchTable))
-    {
-        return -1;
-    }
-
-    return 0;
+    return ::StartServiceCtrlDispatcherW(dispatchTable) ? 0 : static_cast<int>(::GetLastError());
 }
-
-VOID WINAPI SvcMain(DWORD dwArgc, LPTSTR* lpszArgv)
-{
-    // Register the handler function for the service
-
-    gSvcStatusHandle = RegisterServiceCtrlHandler(SVCNAME,SvcCtrlHandler);
-
-    if (gSvcStatusHandle == 0)
-    {
-        //register service control handler failed, abort
-        return;
-    }
-
-    // These SERVICE_STATUS members remain as set here
-
-    gSvcStatus.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
-    gSvcStatus.dwServiceSpecificExitCode = 0;
-
-    // Report initial status to the SCM
-
-    ReportSvcStatus(SERVICE_START_PENDING, NO_ERROR, 8000);
-
-    // Perform service-specific initialization and work.
-
-    SvcInit(dwArgc, lpszArgv);
-}
-
-VOID SvcInit(DWORD dwArgc, LPTSTR* lpszArgv)
-{
-    ghSvcStopEvent = CreateEvent(
-        NULL,    // default security attributes
-        TRUE,    // manual reset event
-        FALSE,   // not signaled
-        NULL);   // no name
-
-    if (ghSvcStopEvent == NULL)
-    {
-        ReportSvcStatus(SERVICE_STOPPED, GetLastError(), 0);
-        return;
-    }
-
-    // Report running status when initialization is complete.
-
-    ReportSvcStatus(SERVICE_RUNNING, NO_ERROR, 0);
-
-    // TO_DO: Perform work until service stops.
-    std::wstring wsDummy1;
-    Logging::intWriteLogToLogFile_ThreadSafe(DEF_intLogType_ServiceStart, wsDummy1);
-
-    HANDLE hThread = (HANDLE)_beginthreadex(NULL, 0, &ServiceWorkerThread, NULL, 0, NULL);
-    HANDLE hThread2 = (HANDLE)_beginthreadex(NULL, 0, &NamedPipeListenerThread, NULL, 0, NULL);
-
-    
-
-    // Check whether to stop the service.
-    WaitForSingleObject(hThread, INFINITE);
-
-    CancelSynchronousIo(hThread2);
-    //WaitForSingleObject(hThread2, INFINITE);
-
-    CloseHandle(ghSvcStopEvent);
-
-    std::wstring wsDummy2;
-    Logging::intWriteLogToLogFile_ThreadSafe(DEF_intLogType_ServiceStop, wsDummy2);
-
-    ReportSvcStatus(SERVICE_STOPPED, NO_ERROR, 0);
-    return;
-    
-}
-
-unsigned __stdcall ServiceWorkerThread(void* pArguments)
-{
-
-    int intWaitCounter = 0; //Execute MainExecCode Every 15 minutes
-
-    //first start wait 15 sec
-    Sleep(15000);
-    //first try printing
-    intStartPrintingJob(true, true);
-
-    //now go to waiting loop
-    while (WaitForSingleObject(ghSvcStopEvent, 0) != WAIT_OBJECT_0)
-    {
-        if (intWaitCounter <= 180) {
-            Sleep(5000);
-            intWaitCounter++;
-            //Always wait 15 minute, we try to print every 15 minutes
-        }
-        else {
-        
-            intWaitCounter = 0; //reset counter
-            intStartPrintingJob(true,true);
-        }
-        
-
-        
-    }
-
-    //_endthreadex(0);
-    return 0;
-}
-
-unsigned __stdcall NamedPipeListenerThread(void* pArguments) {
-
-    NamedPipeListener();
-    return 0;
-}
-
-VOID ReportSvcStatus(DWORD dwCurrentState, DWORD dwWin32ExitCode, DWORD dwWaitHint)
-{
-    static DWORD dwCheckPoint = 1;
-
-    gSvcStatus.dwCurrentState = dwCurrentState;
-    gSvcStatus.dwWin32ExitCode = dwWin32ExitCode;
-    gSvcStatus.dwWaitHint = dwWaitHint;
-
-    if (dwCurrentState == SERVICE_START_PENDING) {
-        gSvcStatus.dwControlsAccepted = 0;
-    }
-    else {
-        gSvcStatus.dwControlsAccepted = SERVICE_ACCEPT_STOP;
-    }
-
-    if ((dwCurrentState == SERVICE_RUNNING) || (dwCurrentState == SERVICE_STOPPED)) {
-        gSvcStatus.dwCheckPoint = 0;
-    }
-    else {
-        gSvcStatus.dwCheckPoint = dwCheckPoint++;
-    }
-    
-
-    // Report the status of the service to the SCM.
-    SetServiceStatus(gSvcStatusHandle, &gSvcStatus);
-}
-
-VOID WINAPI SvcCtrlHandler(DWORD dwCtrl)
-{
-    // Handle the requested control code. 
-
-    switch (dwCtrl)
-    {
-    case SERVICE_CONTROL_STOP:
-        ReportSvcStatus(SERVICE_STOP_PENDING, NO_ERROR, 0);
-
-        // Signal the service to stop.
-
-        SetEvent(ghSvcStopEvent);
-        ReportSvcStatus(gSvcStatus.dwCurrentState, NO_ERROR, 0);
-
-        return;
-
-    case SERVICE_CONTROL_INTERROGATE:
-        break;
-
-    default:
-        break;
-    }
-
-}
-

@@ -152,24 +152,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Logging\Logging.cpp" />
-    <ClCompile Include="NamedPipeServer\IPCServer.cpp" />
-    <ClCompile Include="NamedPipeServer\IPCProcessingJob.cpp" />
     <ClCompile Include="PrintheadMaintainer.cpp" />
-    <ClCompile Include="PrintingEntryPoint\PrintingEntryPoint.cpp" />
-    <ClCompile Include="PrintingStatusReporter\PrintingStatusReporter.cpp" />
-    <ClCompile Include="SoftwareSettings\SoftwareSettings.cpp" />
-    <ClCompile Include="Utils\DateTimeUtils.cpp" />
-    <ClCompile Include="Utils\EncodingUtils.cpp" />
-    <ClCompile Include="Utils\FileSizeUtils.cpp" />
-    <ClCompile Include="Utils\GetFolderPathUtils.cpp" />
-    <ClCompile Include="Utils\LargeIntegerUtils.cpp" />
-    <ClCompile Include="Utils\LoggingUtils.cpp" />
-    <ClCompile Include="Utils\PrinterUtils.cpp" />
-    <ClCompile Include="Utils\RandomUtils.cpp" />
-    <ClCompile Include="Utils\RegistryUtils.cpp" />
-    <ClCompile Include="Utils\WriteFileUtils.cpp" />
-    <ClCompile Include="Utils\WstringUtils.cpp" />
     <ClCompile Include="Printing\FailureReason.cpp" />
     <ClCompile Include="Printing\Printer.cpp" />
     <ClCompile Include="Common\Clock.cpp" />
@@ -185,24 +168,7 @@
     <ClCompile Include="Printing\PrintImage.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Logging\Logging.h" />
-    <ClInclude Include="NamedPipeServer\IPCServer.h" />
-    <ClInclude Include="NamedPipeServer\IPCProcessingJob.h" />
-    <ClInclude Include="PrintingEntryPoint\PrintingEntryPoint.h" />
-    <ClInclude Include="PrintingStatusReporter\PrintingStatusReporter.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="SoftwareSettings\SoftwareSettings.h" />
-    <ClInclude Include="Utils\DateTimeUtils.h" />
-    <ClInclude Include="Utils\EncodingUtils.h" />
-    <ClInclude Include="Utils\FileSizeUtils.h" />
-    <ClInclude Include="Utils\GetFolderPathUtils.h" />
-    <ClInclude Include="Utils\LargeIntegerUtils.h" />
-    <ClInclude Include="Utils\LoggingUtils.h" />
-    <ClInclude Include="Utils\PrinterUtils.h" />
-    <ClInclude Include="Utils\RandomUtils.h" />
-    <ClInclude Include="Utils\RegistryUtils.h" />
-    <ClInclude Include="Utils\WriteFileUtils.h" />
-    <ClInclude Include="Utils\WstringUtils.h" />
     <ClInclude Include="Common\WinHandle.h" />
     <ClInclude Include="Printing\FailureReason.h" />
     <ClInclude Include="Printing\Printer.h" />
