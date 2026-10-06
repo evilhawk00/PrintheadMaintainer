@@ -69,6 +69,12 @@
     <ClCompile Include="Utils\RandomUtils.cpp">
       <Filter>來源檔案</Filter>
     </ClCompile>
+    <ClCompile Include="Printing\FailureReason.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
+    <ClCompile Include="Printing\Printer.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -123,6 +129,15 @@
       <Filter>標頭檔</Filter>
     </ClInclude>
     <ClInclude Include="Utils\RandomUtils.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\WinHandle.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Printing\FailureReason.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Printing\Printer.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
   </ItemGroup>
