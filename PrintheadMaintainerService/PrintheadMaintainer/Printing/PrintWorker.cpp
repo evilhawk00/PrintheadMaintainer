@@ -134,7 +134,8 @@ ManualPrintRequest PrintWorker::RequestManualPrint()
         return ManualPrintRequest::Busy;
     }
 
-    // If a scheduled print is running, the request is handled as soon as it finishes.
+    // A scheduled print that is counting down gives way to the manual one; one that is already
+    // printing finishes first.
     ::SetEvent(m_manualPrintRequested.Get());
     return ManualPrintRequest::Accepted;
 }
@@ -231,6 +232,10 @@ PrintWorker::JobOutcome PrintWorker::RunPrint(PrintKind kind)
         }
     }
 
+    if (outcome.yielded)
+    {
+        return outcome; // the manual print, which runs next, prints the page
+    }
     if (outcome.interrupted)
     {
         ServiceLog::Write(KindLabel(kind) + L" printing was cancelled because the service is stopping");
@@ -331,6 +336,7 @@ PrintWorker::JobOutcome PrintWorker::Print(PrintKind kind)
             JobOutcome cancelled;
             cancelled.interrupted = countdown == Countdown::Stopping;
             cancelled.skipped = countdown == Countdown::NoLongerDue;
+            cancelled.yielded = countdown == Countdown::ManualPrint;
             return cancelled;
         }
 
@@ -354,13 +360,20 @@ PrintWorker::JobOutcome PrintWorker::Print(PrintKind kind)
 
 PrintWorker::Countdown PrintWorker::WaitForCountdown()
 {
-    const HANDLE events[] = { m_stopEvent, m_scheduleChanged.Get() };
+    const HANDLE events[] = { m_stopEvent, m_scheduleChanged.Get(), m_manualPrintRequested.Get() };
     const ULONGLONG deadline = ::GetTickCount64() + kCountdownMs;
     for (;;)
     {
         const ULONGLONG now = ::GetTickCount64();
         const DWORD remainingMs = now < deadline ? static_cast<DWORD>(deadline - now) : 0;
-        const DWORD woken = ::WaitForMultipleObjects(2, events, FALSE, remainingMs);
+        const DWORD woken = ::WaitForMultipleObjects(3, events, FALSE, remainingMs);
+        if (woken == WAIT_OBJECT_0 + 2)
+        {
+            // Print Now during the countdown prints one page, right away, rather than two. The
+            // request is left for the Run loop, which then runs the manual print.
+            ::SetEvent(m_manualPrintRequested.Get());
+            return Countdown::ManualPrint;
+        }
         if (woken != WAIT_TIMEOUT && woken != WAIT_OBJECT_0 + 1)
         {
             return Countdown::Stopping; // stop requested (or the wait failed)

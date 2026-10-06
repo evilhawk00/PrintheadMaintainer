@@ -17,6 +17,7 @@
 * 
 */
 using PrintheadMaintainerUI.Commands;
+using PrintheadMaintainerUI.Enums;
 using PrintheadMaintainerUI.Interfaces;
 using PrintheadMaintainerUI.Models;
 using PrintheadMaintainerUI.NamedPipeClient;
@@ -109,11 +110,12 @@ namespace PrintheadMaintainerUI.ViewModels
             Preview = null;
         }
 
+        // While a page is printing, a request would print a second one after it.
         private bool CanPrintNow()
         {
             ServiceStatus status = _monitor.Status;
             return !_sending && _statusBeforeRequest == null && status != null && status.IsPrinterSelected &&
-                status.ImageAvailable && !status.ManualPrintPending;
+                status.ImageAvailable && !status.ManualPrintPending && status.PrintState != PrintState.Printing;
         }
 
         private async void PrintNow()
@@ -183,6 +185,10 @@ namespace PrintheadMaintainerUI.ViewModels
             else if (_statusBeforeRequest != null)
             {
                 Message = "Printing... This can take a few minutes.";
+            }
+            else if (status?.PrintState == PrintState.Printing)
+            {
+                Message = "A page is being printed.";
             }
             else
             {

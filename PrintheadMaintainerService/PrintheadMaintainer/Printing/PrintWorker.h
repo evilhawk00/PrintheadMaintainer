@@ -76,6 +76,7 @@ private:
         bool notReady = false;    // the printer was not ready, so the print was not started at all
         bool idleReport = false;  // with notReady: the printer reported it itself, see Print
         bool waiting = false;     // a scheduled print failed recently and is not tried again yet
+        bool yielded = false;     // a manual print was requested during the countdown and prints instead
     };
 
     void Run();
@@ -87,6 +88,7 @@ private:
     {
         Elapsed,
         NoLongerDue, // postponed, marked as printed or turned off meanwhile
+        ManualPrint, // a manual print was requested; it prints the page instead
         Stopping,
     };
     Countdown WaitForCountdown();
