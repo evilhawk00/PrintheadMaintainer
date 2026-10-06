@@ -16,23 +16,17 @@
 * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 * 
 */
-using PrintheadMaintainerUI.Enums;
 using PrintheadMaintainerUI.ViewModels;
 using System;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
-using Forms = System.Windows.Forms;
 
 namespace PrintheadMaintainerUI
 {
     public partial class MainWindow : Window
     {
-        // Windows does not accept longer tooltips for notification area icons.
-        private const int MaxTrayTextLength = 63;
-
         private readonly MainViewModel _viewModel;
-        private readonly Forms.NotifyIcon _trayIcon;
         private bool _exiting;
 
         public MainWindow(MainViewModel viewModel)
@@ -41,10 +35,6 @@ namespace PrintheadMaintainerUI
             _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
             DataContext = viewModel;
             titleBar.MouseLeftButtonDown += (sender, e) => DragMove();
-
-            _trayIcon = CreateTrayIcon();
-            UpdateTrayIcon();
-            _viewModel.PropertyChanged += OnViewModelPropertyChanged;
         }
 
         /// <summary>
@@ -58,11 +48,31 @@ namespace PrintheadMaintainerUI
             Activate();
         }
 
-        /// <summary>Removes the notification area icon; called when the program ends.</summary>
-        public void RemoveTrayIcon()
+        /// <summary>
+        /// Shows the window with the print page, printing. As when the settings page is left with
+        /// Back, its unsaved changes are dropped.
+        /// </summary>
+        public void PrintNow()
         {
-            _trayIcon.Visible = false;
-            _trayIcon.Dispose();
+            _viewModel.PrintNow();
+            ShowFromTray();
+        }
+
+        /// <summary>
+        /// Shows the window with the page that postpones the next print. As when the settings page
+        /// is left with Back, its unsaved changes are dropped.
+        /// </summary>
+        public void ShowPostpone()
+        {
+            _viewModel.ShowPostpone();
+            ShowFromTray();
+        }
+
+        /// <summary>Ends the program.</summary>
+        public void Exit()
+        {
+            _exiting = true;
+            Application.Current.Shutdown();
         }
 
         protected override void OnClosing(CancelEventArgs e)
@@ -76,60 +86,10 @@ namespace PrintheadMaintainerUI
             base.OnClosing(e);
         }
 
-        private Forms.NotifyIcon CreateTrayIcon()
-        {
-            var menu = new Forms.ContextMenu(new[]
-            {
-                new Forms.MenuItem("S&how Window", (sender, e) => ShowFromTray()),
-                new Forms.MenuItem("E&xit", (sender, e) => Exit()),
-            });
-            var trayIcon = new Forms.NotifyIcon { ContextMenu = menu, Visible = true };
-            trayIcon.DoubleClick += (sender, e) => ShowFromTray();
-            return trayIcon;
-        }
-
-        private void Exit()
-        {
-            _exiting = true;
-            Application.Current.Shutdown();
-        }
-
         private void HideToTray()
         {
             Hide();
             _viewModel.ShowHome(); // leaving the print page also frees its preview image
-        }
-
-        private void OnViewModelPropertyChanged(object sender, PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == nameof(MainViewModel.State) || e.PropertyName == nameof(MainViewModel.StatusTitle))
-            {
-                UpdateTrayIcon();
-            }
-        }
-
-        private void UpdateTrayIcon()
-        {
-            System.Drawing.Icon previous = _trayIcon.Icon;
-            switch (_viewModel.State)
-            {
-                case ServiceState.OK:
-                    _trayIcon.Icon = Properties.Resources.Icon_Green;
-                    break;
-                case ServiceState.Warning:
-                    _trayIcon.Icon = Properties.Resources.Icon_Orange;
-                    break;
-                case ServiceState.Error:
-                    _trayIcon.Icon = Properties.Resources.Icon_Red;
-                    break;
-                default:
-                    _trayIcon.Icon = Properties.Resources.Icon_Blue;
-                    break;
-            }
-            previous?.Dispose(); // every read of a resource creates a new icon
-
-            string text = "Printhead Maintainer - " + _viewModel.StatusTitle;
-            _trayIcon.Text = text.Length > MaxTrayTextLength ? text.Substring(0, MaxTrayTextLength) : text;
         }
 
         private void MainWindow_MouseDown(object sender, MouseButtonEventArgs e)

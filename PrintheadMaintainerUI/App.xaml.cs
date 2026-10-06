@@ -42,6 +42,7 @@ namespace PrintheadMaintainerUI
         private RegisteredWaitHandle _showWindowWait;
         private StatusNotifier _notifier;
         private MainWindow _window;
+        private TrayIcon _trayIcon;
 
         protected override void OnStartup(StartupEventArgs e)
         {
@@ -65,10 +66,12 @@ namespace PrintheadMaintainerUI
             var client = new ServiceClient();
             var monitor = new StatusMonitor(client);
             var actions = new ScheduleActions(client, monitor);
-            _window = new MainWindow(new MainViewModel(client, monitor, actions));
+            var viewModel = new MainViewModel(client, monitor, actions);
+            _window = new MainWindow(viewModel);
             MainWindow = _window;
             _notifier = new StatusNotifier(monitor);
             _notifier.OpenRequested += (sender, args) => _window.ShowFromTray();
+            _trayIcon = new TrayIcon(_window, viewModel, actions, _notifier);
 
             _showWindowWait = ThreadPool.RegisterWaitForSingleObject(_showWindowEvent,
                 (state, timedOut) => Dispatcher.BeginInvoke(new Action(() => _window.ShowFromTray())),
@@ -86,7 +89,7 @@ namespace PrintheadMaintainerUI
             _showWindowWait?.Unregister(null);
             _showWindowEvent?.Dispose();
             _notifier?.Dispose();
-            _window?.RemoveTrayIcon();
+            _trayIcon?.Dispose();
             _instanceMutex?.Dispose();
             base.OnExit(e);
         }

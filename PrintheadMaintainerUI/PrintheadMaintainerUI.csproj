@@ -98,6 +98,7 @@
     <Compile Include="NamedPipeClient\ServiceClient.cs" />
     <Compile Include="NamedPipeClient\ServiceMessage.cs" />
     <Compile Include="Notifications\StatusNotifier.cs" />
+    <Compile Include="Notifications\TrayIcon.cs" />
     <Compile Include="Notifications\UserReturnDetector.cs" />
     <Compile Include="Presentation\DisplayText.cs" />
     <Compile Include="Presentation\StatusSummary.cs" />

@@ -27,8 +27,9 @@ using System.Windows.Threading;
 namespace PrintheadMaintainerUI.Notifications
 {
     /// <summary>
-    /// Shows Windows notifications for the service's status. The computer may be left alone right
-    /// after it starts, so a failed scheduled print must still be noticed when the user comes back:
+    /// Shows Windows notifications for the service's status, and for changes to the schedule made
+    /// without the window. The computer may be left alone right after it starts, so a failed
+    /// scheduled print must still be noticed when the user comes back:
     /// - A failed scheduled print is shown as a reminder that stays on screen until the user closes
     ///   it, and again when the service reports a different problem. While it is not resolved and
     ///   the print is due (not postponed), it is shown again every 15 minutes, when the UI starts
@@ -43,8 +44,12 @@ namespace PrintheadMaintainerUI.Notifications
         private const string ScheduledFailureTag = "ScheduledFailure";
         private const string ManualFailureTag = "ManualFailure";
         private const string PrintStartingTag = "PrintStarting";
+        private const string ScheduleChangeTag = "ScheduleChange";
 
         private static readonly TimeSpan ReminderInterval = TimeSpan.FromMinutes(15);
+
+        // How a change went is of no use later, so it does not stay in the notification center.
+        private static readonly TimeSpan ScheduleChangeLifetime = TimeSpan.FromMinutes(5);
 
         private readonly StatusMonitor _monitor;
         private readonly UserReturnDetector _userReturn = new UserReturnDetector();
@@ -68,6 +73,15 @@ namespace PrintheadMaintainerUI.Notifications
 
         /// <summary>The user clicked a notification; raised on the UI thread.</summary>
         public event EventHandler OpenRequested;
+
+        /// <summary>Tells how a change to the schedule went that was made without the window.</summary>
+        public void ShowScheduleChange(ScheduleChange change)
+        {
+            Show(new ToastContentBuilder()
+                    .AddText(change.Succeeded ? "Schedule changed" : "The schedule was not changed")
+                    .AddText(change.Message),
+                ScheduleChangeTag, DateTimeOffset.Now + ScheduleChangeLifetime);
+        }
 
         public void Dispose()
         {
@@ -179,13 +193,17 @@ namespace PrintheadMaintainerUI.Notifications
             _dispatcher.BeginInvoke(new Action(() => OpenRequested?.Invoke(this, EventArgs.Empty)));
         }
 
-        private static void Show(ToastContentBuilder content, string tag)
+        private static void Show(ToastContentBuilder content, string tag, DateTimeOffset? expiration = null)
         {
             content.AddArgument("action", "open");
             TryNotificationCall(() => content.Show(toast =>
             {
                 toast.Tag = tag;
                 toast.Group = Group;
+                if (expiration.HasValue)
+                {
+                    toast.ExpirationTime = expiration;
+                }
             }));
         }
 

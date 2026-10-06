@@ -26,9 +26,9 @@ using System.Threading.Tasks;
 namespace PrintheadMaintainerUI.Status
 {
     /// <summary>
-    /// Changes when the next scheduled print happens, for the home page and the postpone page.
-    /// Every change is worked out from the service's status at that moment, so that changes made
-    /// in quick succession add up, and the status the UI shows is refreshed after it.
+    /// Changes when the next scheduled print happens, for the home page, the postpone page and the
+    /// tray menu. Every change is worked out from the service's status at that moment, so that
+    /// changes made in quick succession add up, and the status the UI shows is refreshed after it.
     /// </summary>
     public sealed class ScheduleActions
     {
@@ -46,6 +46,9 @@ namespace PrintheadMaintainerUI.Status
 
         /// <summary>Scheduled printing is on and a printer is selected, so there is a next print.</summary>
         public bool HasNextPrint => _monitor.Status?.NextScheduledPrintUtc != null;
+
+        /// <summary>The next print waits for a postponement that has not ended yet.</summary>
+        public bool IsPostponed => _monitor.Status?.IsPostponed(DateTime.UtcNow) == true;
 
         /// <summary>The next scheduled print as shown, or now if it is due; null if there is none.</summary>
         public DateTime? NextPrintUtc => NextPrint(_monitor.Status);
