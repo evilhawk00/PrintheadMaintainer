@@ -30,7 +30,8 @@ namespace PrintheadMaintainerUI.Notifications
     /// Shows Windows notifications for the service's status. The computer may be left alone right
     /// after it starts, so a failed scheduled print must still be noticed when the user comes back:
     /// - Every failed scheduled print is shown, as a reminder that stays on screen until the user
-    ///   closes it, and again when the UI starts or the user returns while it is not resolved.
+    ///   closes it. While it is not resolved, it is shown again every 15 minutes, when the UI
+    ///   starts and when the user returns.
     /// - Each kind of notification replaces the previous one of its kind, so the notification
     ///   center holds only the latest one, and it is removed once a later print succeeds.
     /// Create it on the UI thread.
@@ -42,11 +43,14 @@ namespace PrintheadMaintainerUI.Notifications
         private const string ManualFailureTag = "ManualFailure";
         private const string PrintStartingTag = "PrintStarting";
 
+        private static readonly TimeSpan ReminderInterval = TimeSpan.FromMinutes(15);
+
         private readonly StatusMonitor _monitor;
         private readonly UserReturnDetector _userReturn = new UserReturnDetector();
         private readonly Dispatcher _dispatcher = Dispatcher.CurrentDispatcher;
         private ServiceStatus _previous;
         private bool _showUnresolvedFailure = true;
+        private DateTime _lastReminderUtc = DateTime.MinValue;
 
         // Notifications from an earlier run may still be in the notification center.
         private bool _scheduledFailureMayBeShown = true;
@@ -97,7 +101,9 @@ namespace PrintheadMaintainerUI.Notifications
             // Once scheduled printing is turned off nothing will be retried, so stop reminding.
             bool unresolved = status.HasUnresolvedScheduledFailure && status.Enabled && status.IsPrinterSelected;
             _userReturn.IsEnabled = unresolved;
-            if (unresolved && (_showUnresolvedFailure || IsNewer(status.LastScheduledFailure, previous?.LastScheduledFailure)))
+            DateTime now = DateTime.UtcNow;
+            bool reminderDue = now - _lastReminderUtc >= ReminderInterval || now < _lastReminderUtc; // or the clock was turned back
+            if (unresolved && (_showUnresolvedFailure || IsNewer(status.LastScheduledFailure, previous?.LastScheduledFailure) || reminderDue))
             {
                 PrintFailure failure = status.LastScheduledFailure;
                 Show(new ToastContentBuilder()
@@ -109,6 +115,7 @@ namespace PrintheadMaintainerUI.Notifications
                         .AddButton(new ToastButtonDismiss()),
                     ScheduledFailureTag);
                 _scheduledFailureMayBeShown = true;
+                _lastReminderUtc = now;
             }
             else if (!unresolved && _scheduledFailureMayBeShown)
             {
