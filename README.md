@@ -5,8 +5,7 @@
 ### System requirements :
 64-bit Windows 10 or higher
 ## Download
-Newest version : [1.0.0.1](https://github.com/evilhawk00/PrintheadMaintainer/releases "1.0.0.1")
-Upcoming version (planned v1.1.0.0): Adds optional paper source / printer tray selection in Settings.
+Newest version : [1.1.0.0](https://github.com/evilhawk00/PrintheadMaintainer/releases/tag/v1.1.0.0)
 
 ## Screenshots
 <img width="550" src="https://github.com/evilhawk00/PrintheadMaintainer/blob/main/OtherResources/Screenshots/HomeScreen.jpg?raw=true">
