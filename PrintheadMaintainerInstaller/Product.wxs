@@ -55,9 +55,10 @@
 
     <!-- The settings and the data folder (the log and the custom image) are kept when the program is
          upgraded and removed when it is uninstalled. The installed folder is looked up through the
-         service component, which only Windows Installer can change. -->
+         service component, which only Windows Installer can change. Its key path is a file, hence
+         Type="file"; with no file signature to look for, the search gives the folder of that file. -->
     <Property Id="INSTALLEDFOLDER">
-      <ComponentSearch Id="InstalledServiceFolder" Guid="{31D4345A-5EF0-47C9-BB23-25C893E97527}" Type="directory"/>
+      <ComponentSearch Id="InstalledServiceFolder" Guid="{31D4345A-5EF0-47C9-BB23-25C893E97527}" Type="file"/>
     </Property>
     <SetProperty Id="DATAFOLDERTOREMOVE" Before="Wix4RemoveFoldersEx_$(sys.BUILDARCHSHORT)" Sequence="execute"
                  Value="[INSTALLEDFOLDER]Data\"
