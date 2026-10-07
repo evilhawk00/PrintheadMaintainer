@@ -50,6 +50,7 @@ Upcoming version (planned v1.1.0.0): Adds optional paper source / printer tray s
 	+ The UI can be closed by right clicking the tray icon and select "exit". Please note closing the UI will not affect the scheduled printing function of this software because the background service is still running in the background. Closing the UI only disables the ability of showing a printing failure notification. The UI is just a bridge to communicate with the background service and display the current status to the user. With this kind of implementation, the software can do the printing job even if the PC is still at the user login screen.
 	+ Because the service does not run under your user account, it can only use printers that are installed for all users of the computer. Printers connected only for your own account are not available to it.
 	+ The settings are kept in the registry (HKEY_LOCAL_MACHINE\SOFTWARE\evilhawk00\Printhead Maintainer), the log and the custom image in the Data folder of the installation folder. They are kept when upgrading and removed when uninstalling.
+	+ Upgrading, repairing or uninstalling closes the UI, so that no restart is needed. After an upgrade or a repair, the UI starts again with the Finish button of the setup, or at the next sign-in.
 
 ## Image for printing
 + **Currently only .bmp image is supported.**

@@ -38,8 +38,9 @@
     <Property Id="ARPPRODUCTICON" Value="Icon_Blue.ico"/>
 
     <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER"/>
+    <!-- The tray program starts when the setup finishes, also after a repair, which closes it. -->
     <UI>
-      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchApplication" Condition="NOT Installed"/>
+      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchApplication" Condition="NOT Installed OR REINSTALL"/>
     </UI>
 
     <Property Id="WixShellExecTarget" Value="[#PrintheadMaintainer.exe]"/>
@@ -68,7 +69,27 @@
                  Condition="REMOVE~=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE"/>
     <CustomAction Id="DeleteSettings" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Execute="deferred" Impersonate="no" Return="ignore"/>
 
+    <!-- The tray program is closed before its files are removed or replaced, when the program is
+         upgraded, repaired or uninstalled. It is sent the messages of a session that ends, on which it
+         exits normally and removes its icon. This is done before InstallValidate, where Windows would
+         otherwise ask the user to close it, and reaches the session of the user who runs the setup.
+         RebootPrompt is turned off, as a prompt, like TerminateProcess and the elevated messages,
+         needs a deferred action, which cannot be scheduled before InstallInitialize. -->
+    <util:CloseApplication Id="CloseTrayProgram" Target="PrintheadMaintainer.exe" EndSessionMessage="yes" RebootPrompt="no"
+                           Property="TRAYPROGRAMRUNNING" Condition="NOT Installed OR REINSTALL OR REMOVE~=&quot;ALL&quot;"/>
+    <!-- An instance that is still running, for example in the session of another user, where Windows
+         cannot close it either, is ended before the files change, so that no restart is needed. This
+         is done after RemoveExistingProducts, as no action may add to the installation script before
+         it. An earlier version that an upgrade removes ends such an instance itself, before removing
+         its files, from version 1.1.0.0 on. -->
+    <SetProperty Id="EndTrayProgram" After="RemoveExistingProducts" Sequence="execute"
+                 Value="&quot;[System64Folder]taskkill.exe&quot; /F /IM PrintheadMaintainer.exe"
+                 Condition="TRAYPROGRAMRUNNING"/>
+    <CustomAction Id="EndTrayProgram" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Execute="deferred" Impersonate="no" Return="ignore"/>
+
     <InstallExecuteSequence>
+      <Custom Action="override Wix4CloseApplications_$(sys.BUILDARCHSHORT)" Before="InstallValidate"/>
+      <Custom Action="EndTrayProgram" After="SetEndTrayProgram" Condition="TRAYPROGRAMRUNNING"/>
       <Custom Action="RestrictServicePrivileges" After="InstallServices" Condition="NOT REMOVE~=&quot;ALL&quot;"/>
       <Custom Action="DeleteSettings" After="RemoveRegistryValues" Condition="REMOVE~=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE"/>
     </InstallExecuteSequence>
