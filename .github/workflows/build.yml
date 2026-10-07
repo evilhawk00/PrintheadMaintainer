@@ -1,5 +1,5 @@
-# Builds the service, the UI and the installer with build.ps1 for every push and pull request. The
-# installer is kept as an artifact of the run.
+# Builds the service, the UI and the installer with build.ps1 for every push and pull request, and
+# tests the installer with test-installer.ps1. The installer is kept as an artifact of the run.
 name: Build
 
 on:
@@ -38,3 +38,15 @@ jobs:
           name: PrintheadMaintainer
           if-no-files-found: error
           path: artifacts/
+
+      # Installs the program on the runner, checks the installation, and repairs and uninstalls it
+      # while the UI runs. The logs of the setup and of the service are kept when the test fails.
+      - name: Test the installer
+        run: .\test-installer.ps1
+
+      - uses: actions/upload-artifact@v6
+        if: failure()
+        with:
+          name: installer-test-logs
+          if-no-files-found: ignore
+          path: installer-test/

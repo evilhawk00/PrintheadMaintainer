@@ -3,8 +3,9 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
-# Output of build.ps1
+# Output of build.ps1 and test-installer.ps1
 artifacts/
+installer-test/
 
 # User-specific files
 *.rsuser
